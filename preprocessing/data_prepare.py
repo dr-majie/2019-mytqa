@@ -18,7 +18,7 @@ class prepare_data():
                                                                  op_path=None)
             g_network_ready_files.generate_word2vec_for_all()
 
-        self.word_vec_size = cfg.word_vec_size#私有变量
+        self.word_vec_size = cfg.word_vec_size
         self.num_of_words_in_opt = cfg.max_opt_length
         self.num_of_words_in_question = cfg.max_que_length
         self.num_of_sents_in_closest_para = cfg.max_sent_para
