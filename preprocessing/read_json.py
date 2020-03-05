@@ -55,6 +55,16 @@ class read_json():
                 topic_f = 'topics.txt'
                 topic_f_handle = open(os.path.join(l_dir, topic_f), 'w')
 
+                # Adding the information of instructional diagrams
+                ins_img_name = 'ins_diagram'
+                ins_dir = os.path.join(l_dir, ins_img_name)
+                if not os.path.exists(ins_dir):
+                    os.makedirs(ins_dir)
+
+                for DD_ID in lessons['instructionalDiagrams']:
+                    img_path = DD_ID['imagePath']
+                    shutil.copy2(img_path, ins_dir)
+
                 for topics in lessons['topics']:
                     topic_f_handle.write(lessons['topics'][topics]['content']['text'] + '\n')
 
@@ -90,6 +100,17 @@ class read_json():
                         if q_tag == dq_tag:
                             quest_img_path = os.path.join(self.json_dir, lessons[qs_tag][q_tag][q_id][img_path_tag])
                             shutil.copy2(quest_img_path, q_dir)
+
+                            # Adding the coordinate of object in the diagram
+                            img_path = lessons[qs_tag][q_tag][q_id][img_path_tag]
+                            img_kind = str(img_path).split('/')[0]
+
+                            if img_kind.startswith('abc'):
+                                pass
+                            else:
+                                img_name = img_path_tag.split('/')[-1]
+                                with open(q_dir + 'coordinate.txt', 'w') as f:
+                                    json.dump(lessons['diagramAnnotations'][img_name], f)
 
                         if not self.is_test_data:
                             correct_answer = lessons[qs_tag][q_tag][q_id]['correctAnswer']['processedText']
