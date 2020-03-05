@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#ljj的测试
 
 INDEX_DIR = 'IndexFiles.index'
 
