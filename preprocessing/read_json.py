@@ -39,6 +39,7 @@ class read_json():
         ndq_tag = 'nonDiagramQuestions'
         dq_tag = 'diagramQuestions'
         q_tags = [ndq_tag, dq_tag]
+        dd_id_tag = 'instructionalDiagrams'
 
         for f in self.json_file_list:
             with open(os.path.join(self.json_dir, f), 'r') as f:
@@ -59,6 +60,21 @@ class read_json():
                     topic_f_handle.write(lessons['topics'][topics]['content']['text'] + '\n')
 
                 topic_f_handle.close()
+
+                # Adding the information of instructional diagrams
+
+                for dd_id in lessons[dd_id_tag]:
+                    ins_dir = os.path.join(l_dir, dd_id)
+                    if not os.path.exists(ins_dir):
+                        os.makedirs(ins_dir)
+                    img_path = lessons[dd_id_tag][dd_id][img_path_tag]
+                    shutil.copy2(img_path, ins_dir)
+                    img_name = lessons[dd_id_tag][dd_id]['imageName']
+                    dic = {'dd_coordinate': lessons['diagramAnnotations'][img_name],
+                           'dd_text:': lessons[dd_id_tag][dd_id]['processedText']}
+                    with open(os.path.join(ins_dir, img_name[:-4] + '.txt'), 'w') as f:
+                        json.dump(dic, f)
+
                 for q_tag in q_tags:
                     # if lessons[qs_tag][q_tag]
                     for q_id, _ in lessons[qs_tag][q_tag].items():
@@ -90,6 +106,17 @@ class read_json():
                         if q_tag == dq_tag:
                             quest_img_path = os.path.join(self.json_dir, lessons[qs_tag][q_tag][q_id][img_path_tag])
                             shutil.copy2(quest_img_path, q_dir)
+
+                        # Adding the coordinate of object in the diagram
+                        img_path = lessons[qs_tag][q_tag][q_id][img_path_tag]
+                        img_kind = str(img_path).split('/')[0]
+
+                        if img_kind.startswith('abc'):
+                            pass
+                        else:
+                            img_name = img_path_tag.split('/')[-1]
+                            with open(q_dir + 'coordinate.txt', 'w') as f:
+                                json.dump(lessons['diagramAnnotations'][img_name], f)
 
                         if not self.is_test_data:
                             correct_answer = lessons[qs_tag][q_tag][q_id]['correctAnswer']['processedText']
@@ -169,7 +196,6 @@ class read_json():
 
         print('Total Questions : ', num_of_ques)
         print('Questions with error : ', wrong_que)
-
 
     def get_statistics(self):
 
