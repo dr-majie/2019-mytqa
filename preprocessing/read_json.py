@@ -227,17 +227,17 @@ class read_json():
 
                 num_que_token_list.append(num_of_tokens_in_que)
 
-                if que.startswith('NDQ'):
-                    with open(os.path.join(que_dir_path, closest_sent_fname + f_ext), 'r') as f:
-                        sents = f.readlines()
-                    num_of_tokens_in_sents = 0
-                    for sent in sents:
-                        words = word_tokenize(sent)
-                        num_of_tokens_in_sents += len(words)
-                    num_sent_token_list.append(num_of_tokens_in_sents)
-                    if num_of_tokens_in_sents == 0:
-                        print('Lesson : ', lesson)
-                        print('Question : ', que)
+                # process DQ and NDQ
+                with open(os.path.join(que_dir_path, closest_sent_fname + f_ext), 'r') as f:
+                    sents = f.readlines()
+                num_of_tokens_in_sents = 0
+                for sent in sents:
+                    words = word_tokenize(sent)
+                    num_of_tokens_in_sents += len(words)
+                num_sent_token_list.append(num_of_tokens_in_sents)
+                if num_of_tokens_in_sents == 0:
+                    print('Lesson : ', lesson)
+                    print('Question : ', que)
 
                 option = 'a'
                 while os.path.exists(os.path.join(que_dir_path, option + f_ext)):
