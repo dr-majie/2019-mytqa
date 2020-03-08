@@ -63,18 +63,17 @@ class get_closest_sentences():
             questions_dir = self.get_list_of_dirs(l_dir)
 
             for question_dir in questions_dir:
-                if question_dir.startswith('NDQ'):
-                    print('Question : ', question_dir)
-                    with open(os.path.join(l_dir, question_dir, question_fname), 'r') as f:
-                        question_content = f.readlines()
+                print('Question : ', question_dir)
+                with open(os.path.join(l_dir, question_dir, question_fname), 'r') as f:
+                    question_content = f.readlines()
 
-                    option = 'a'
-                    while os.path.exists(os.path.join(l_dir, question_dir, option + f_ext)):
-                        with open(os.path.join(l_dir, question_dir, option + f_ext), 'r') as f:
-                            opt = f.readlines()
-                        question_content.append(self.convert_list_to_string(opt))
-                        option = chr(ord(option) + 1)
+                option = 'a'
+                while os.path.exists(os.path.join(l_dir, question_dir, option + f_ext)):
+                    with open(os.path.join(l_dir, question_dir, option + f_ext), 'r') as f:
+                        opt = f.readlines()
+                    question_content.append(self.convert_list_to_string(opt))
+                    option = chr(ord(option) + 1)
 
-                    sent_f_handle = open(os.path.join(l_dir, question_dir, sent_closest_to_question_fname), 'w')
-                    self.get_query_based_sentences(topic_content, question_content, sent_f_handle)
-                    sent_f_handle.close()
+                sent_f_handle = open(os.path.join(l_dir, question_dir, sent_closest_to_question_fname), 'w')
+                self.get_query_based_sentences(topic_content, question_content, sent_f_handle)
+                sent_f_handle.close()
