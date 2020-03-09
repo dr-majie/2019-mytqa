@@ -89,8 +89,7 @@ def write_info(info, img, img_path):
         elif len(line_text['LineText']) == 1 and (not is_alpha(line_text['LineText'])):
             pass
 
-        elif len(line_text['LineText']) == 2 and line_text['LineText'].startswith('L') and is_alpha(
-                line_text['Words'][0]['WordText'][1]):
+        elif len(line_text['LineText']) == 2 and is_alpha(line_text['Words'][0]['WordText'][1]):
 
             if is_existing(line_text['Words'][0]['WordText'][1], img_info):
                 detailed_char_info['Center'] = (line_text['Words'][0]['Left'] + line_text['Words'][0]['Width'] / 2,

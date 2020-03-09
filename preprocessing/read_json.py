@@ -1,10 +1,11 @@
+from __future__ import division
 import json
 import os
 import shutil
 import nltk
 from nltk.tokenize import word_tokenize
 from preprocessing.get_closest_sen import get_closest_sentences
-from __future__ import division
+
 
 
 class read_json():
@@ -110,7 +111,7 @@ class read_json():
 
                         # Adding the coordinate of object in the diagram
                         img_path = lessons[qs_tag][q_tag][q_id][img_path_tag]
-                        img_kind = str(img_path).split('/')[0]
+                        img_kind = img_path.split('/')[0]
 
                         if img_kind.startswith('abc'):
                             img_name = img_path.split('/')[-1]
@@ -308,7 +309,7 @@ def get_statistics(self):
     print('Max Closest sentence length : ', max(num_sent_token_list))
 
 
-def read_json_do_sanity_create_closest_sent_(self, word2vec_path):
+def read_json_do_sanity_create_closest_sent(self, word2vec_path):
     self.read_content()
     processed_data_path = os.path.dirname(self.op_dir)
     read_training_json = get_closest_sentences(processed_data_path)

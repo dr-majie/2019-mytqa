@@ -17,7 +17,7 @@ class generate_network_ready_files():
 
         if not os.path.exists(self.raw_text_path):
             read_json_data = read_json(os.path.dirname(processed_data_path), is_test_data)
-            read_json_data.read_json_do_sanity_create_closest_sent_(self.word2vec_path)
+            read_json_data.read_json_do_sanity_create_closest_sent(self.word2vec_path)
 
         if op_path is None:
             op_path = os.path.join(processed_data_path, 'one_hot_files')
