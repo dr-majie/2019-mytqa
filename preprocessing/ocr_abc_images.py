@@ -122,7 +122,6 @@ if __name__ == '__main__':
         img_list = get_img_list(img_path)
 
         for img in img_list:
-            img_size = os.path.getsize(os.path.join(img_path, img))
             info = ocr_space_file(os.path.join(img_path, img))
             print(info)
             info = json.loads(info)
