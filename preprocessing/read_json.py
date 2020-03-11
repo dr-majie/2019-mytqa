@@ -392,7 +392,7 @@ class read_json():
             print(str(k), str(v))
         print('Max Closest sentence length : ', max(num_sent_token_list))
 
-    def read_json_do_sanity_create_closest_sent_(self, word2vec_path):
+    def read_json_do_sanity_create_closest_sent(self, word2vec_path):
         self.read_content()
         processed_data_path = os.path.dirname(self.op_dir)
         read_training_json = get_closest_sentences(processed_data_path)
