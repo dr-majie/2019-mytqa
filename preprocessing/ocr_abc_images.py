@@ -12,7 +12,7 @@ from PIL import Image
 import os
 
 
-def ocr_space_file(filename, overlay=True, api_key='64f27b7a7588957', language='eng'):
+def ocr_space_file(filename, overlay=True, api_key='PKMXB8054888A', language='eng'):
     """ OCR.space API request with local file.
         Python3.5 - not tested on 2.7
     :param filename: Your file path & name.
@@ -63,10 +63,8 @@ def is_existing(character, img_info):
         return 1
 
 
-def write_info(info, img, img_path):
-    json_dict = {}
+def write_info(info, img, json_dict):
     img_info = []
-    img_info_json_path = os.path.join(img_path, 'abc_question_images.json')
 
     for line_text in info:
         char_dict = {}
@@ -108,10 +106,6 @@ def write_info(info, img, img_path):
 
     json_dict[img] = img_info
 
-    with open(img_info_json_path, 'a') as f:
-        json.dump(json_dict, f)
-        f.write('\n')
-
 
 if __name__ == '__main__':
     slice_path_list = ['train', 'val', 'test']
@@ -119,6 +113,8 @@ if __name__ == '__main__':
     for slice_path in slice_path_list:
         img_path = '/data/kf/majie/codehub/2019-mytqa/data/' + slice_path + '/abc_question_images/'
         img_list = get_img_list(img_path)
+        json_dict = {}
+        img_info_json_path = os.path.join(img_path, 'abc_question_images.json')
 
         for img in img_list:
             info = ocr_space_file(os.path.join(img_path, img))
@@ -126,4 +122,8 @@ if __name__ == '__main__':
             info = json.loads(info)
             print(img)
             info = info['ParsedResults'][0]['TextOverlay']['Lines']
-            write_info(info, img, img_path)
+            write_info(info, img, json_dict)
+
+        with open(img_info_json_path, 'w') as f:
+            json.dump(json_dict, f)
+            f.write('\n')
