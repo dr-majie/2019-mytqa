@@ -8,9 +8,10 @@ from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.search import IndexSearcher
 from org.apache.lucene.store import SimpleFSDirectory
 
+
 class retrieve_sents():
 
-    def __init__(self,indexDir,query):
+    def __init__(self, indexDir, query):
         self.indexDir = indexDir
         self.query = query
         # lucene.initVM(vmargs=['-Djava.awt.headless=true'])
@@ -37,7 +38,8 @@ class retrieve_sents():
         duration = datetime.now() - start
         # print query
         if self.stats:
-            print >>sys.stderr, "Found %d sentences (in %s) that matched query '%s':" %(len(scoreDocs), duration, query)
+            print("Found %d sentences (in %s) that matched query '%s':" % (len(scoreDocs), duration, query),
+                  file=sys.stderr)
 
         for scoreDoc in scoreDocs:
             # print scoreDoc.doc

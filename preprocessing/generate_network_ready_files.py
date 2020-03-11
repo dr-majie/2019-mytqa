@@ -152,7 +152,7 @@ class generate_network_ready_files():
                 os.makedirs(op_l_dir)
 
             questions_dir = self.get_list_of_dirs(l_dir)
-            questions_dir = [name for name in questions_dir if name.startswith('NDQ')]
+            questions_dir = [name for name in questions_dir]
             for question_dir in questions_dir:
                 file_list = self.get_list_of_files(os.path.join(l_dir, question_dir))
 

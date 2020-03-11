@@ -114,7 +114,7 @@ class prepare_data():
         for lesson in self.lessons_list:
             l_dir = os.path.join(path, lesson)
             questions_dir = self.get_list_of_dirs(l_dir)
-            questions_dir = [name for name in questions_dir if name.startswith("NDQ")]
+            questions_dir = [name for name in questions_dir]
             for question_dir in questions_dir:
                 g = open(os.path.join(path, lesson, question_dir, "Question.txt"), "r").read()
                 ans = open(os.path.join(path, lesson, question_dir, "correct_answer.txt"), "r").read()
