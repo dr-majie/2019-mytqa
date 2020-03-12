@@ -73,7 +73,7 @@ class read_json():
                     shutil.copy2(dd_img_path, ins_dir)
                     img_name = lessons[dd_id_tag][dd_id]['imageName']
 
-                    with open(os.path.join(ins_dir, img_name[:-4] + '.json'), 'w') as f:
+                    with open(os.path.join(ins_dir, img_name[:-4] + '.txt'), 'w') as f:
                         json_dict = {}
                         if img_name in lessons['diagramAnnotations'].keys() and img_name:
                             img_info = lessons['diagramAnnotations'][img_name]
@@ -109,8 +109,8 @@ class read_json():
                             # saving the detailed coordinate of each word
                             detailed_word_info = {}
                             detailed_word_info['Center'] = [0.0, 0.0]
-                            detailed_word_info['Left'] = [0.0, 0.0]
-                            detailed_word_info['Top'] = [0.0, 0.0]
+                            detailed_word_info['Left'] = 0.0
+                            detailed_word_info['Top'] = 0.0
                             detailed_word_info['Height'] = 0.0
                             detailed_word_info['Width'] = 0.0
 
@@ -168,7 +168,7 @@ class read_json():
 
                                 img_info = imgs_info_dict[img_name]
 
-                                with open(q_dir + 'coordinate.txt', 'w') as f:
+                                with open(os.path.join(q_dir, 'coordinate.txt'), 'w') as f:
                                     img_info_dict = {}
                                     if img_info:
                                         img_info_dict[img_name] = img_info
@@ -179,8 +179,8 @@ class read_json():
                                         # saving the detailed coordinate of each word
                                         detailed_word_info = {}
                                         detailed_word_info['Center'] = [0.0, 0.0]
-                                        detailed_word_info['Left'] = [0.0, 0.0]
-                                        detailed_word_info['Top'] = [0.0, 0.0]
+                                        detailed_word_info['Left'] = 0.0
+                                        detailed_word_info['Top'] = 0.0
                                         detailed_word_info['Height'] = 0.0
                                         detailed_word_info['Width'] = 0.0
 
@@ -191,7 +191,7 @@ class read_json():
                                     json.dump(img_info_dict, f)
                             else:
                                 img_name = img_path.split('/')[-1]
-                                with open(q_dir + 'coordinate.txt', 'w') as f:
+                                with open(os.path.join(q_dir, 'coordinate.txt'), 'w') as f:
                                     if img_name in lessons['diagramAnnotations'].keys():
                                         img_info = lessons['diagramAnnotations'][img_name]
                                         img_info_list = []
@@ -231,8 +231,8 @@ class read_json():
                                         # saving the detailed coordinate of each word
                                         detailed_word_info = {}
                                         detailed_word_info['Center'] = [0.0, 0.0]
-                                        detailed_word_info['Left'] = [0.0, 0.0]
-                                        detailed_word_info['Top'] = [0.0, 0.0]
+                                        detailed_word_info['Left'] = 0.0
+                                        detailed_word_info['Top'] = 0.0
                                         detailed_word_info['Height'] = 0.0
                                         detailed_word_info['Width'] = 0.0
 
@@ -280,40 +280,41 @@ class read_json():
 
         for lesson in lessons:
             print('Lesson : ', lesson)
+
             questions_list = self.get_list_of_dirs(os.path.join(self.op_dir, lesson))
-
             for que in questions_list:
-                num_of_ques += 1
-                print('Question : ', que)
-                que_dir_path = os.path.join(self.op_dir, lesson, que)
-                file_list = self.get_list_of_files(que_dir_path, file_extension='.txt')
+                if que.startswith("NDQ") or que.startswith("DQ"):
+                    num_of_ques += 1
+                    print('Question : ', que)
+                    que_dir_path = os.path.join(self.op_dir, lesson, que)
+                    file_list = self.get_list_of_files(que_dir_path, file_extension='.txt')
 
-                if que_fname + f_ext not in file_list:
-                    print("Question file doesn't exist")
+                    if que_fname + f_ext not in file_list:
+                        print("Question file doesn't exist")
 
-                if corr_ans_fname + f_ext not in file_list:
-                    print("Correct answer file doesn't exist")
+                    if corr_ans_fname + f_ext not in file_list:
+                        print("Correct answer file doesn't exist")
 
-                if closest_sent_fname + f_ext not in file_list:
-                    print("Closest sentence file doesn't exist")
+                    if closest_sent_fname + f_ext not in file_list:
+                        print("Closest sentence file doesn't exist")
 
-                if not self.is_test_data:
-                    with open(os.path.join(que_dir_path, corr_ans_fname + f_ext), 'r') as f:
-                        correct_answer = f.readlines()
+                    if not self.is_test_data:
+                        with open(os.path.join(que_dir_path, corr_ans_fname + f_ext), 'r') as f:
+                            correct_answer = f.readlines()
 
-                    correct_answer = correct_answer[0].strip().lower()
-                    option = 'a'
+                        correct_answer = correct_answer[0].strip().lower()
+                        option = 'a'
 
-                    while ord(option) <= ord(correct_answer):
-                        if option + f_ext not in file_list:
-                            wrong_que += 1
-                            print('Correct answer is : ', correct_answer)
-                            print("Error : Option file doesn't exist", option + f_ext)
-                            shutil.rmtree(que_dir_path)
-                            break
-                        option = chr(ord(option) + 1)
-                else:
-                    print('cant check correctness of options as this is test data')
+                        while ord(option) <= ord(correct_answer):
+                            if option + f_ext not in file_list:
+                                wrong_que += 1
+                                print('Correct answer is : ', correct_answer)
+                                print("Error : Option file doesn't exist", option + f_ext)
+                                shutil.rmtree(que_dir_path)
+                                break
+                            option = chr(ord(option) + 1)
+                    else:
+                        print('cant check correctness of options as this is test data')
 
             print(20 * '**')
 
@@ -338,41 +339,41 @@ class read_json():
             for que in questions_list:
                 que_dir_path = os.path.join(self.op_dir, lesson, que)
                 file_list = self.get_list_of_files(que_dir_path, file_extension='.txt')
+                if que.startswith("NDQ") or que.startswith("DQ"):
+                    with open(os.path.join(que_dir_path, que_fname + f_ext), 'r') as f:
+                        ques = f.readlines()
 
-                with open(os.path.join(que_dir_path, que_fname + f_ext), 'r') as f:
-                    ques = f.readlines()
-
-                num_of_tokens_in_que = 0
-                for sent in ques:
-                    words = word_tokenize(sent)
-                    num_of_tokens_in_que += len(words)
-
-                num_que_token_list.append(num_of_tokens_in_que)
-
-                # process DQ and NDQ
-                with open(os.path.join(que_dir_path, closest_sent_fname + f_ext), 'r') as f:
-                    sents = f.readlines()
-                num_of_tokens_in_sents = 0
-                for sent in sents:
-                    words = word_tokenize(sent)
-                    num_of_tokens_in_sents += len(words)
-                num_sent_token_list.append(num_of_tokens_in_sents)
-                if num_of_tokens_in_sents == 0:
-                    print('Lesson : ', lesson)
-                    print('Question : ', que)
-
-                option = 'a'
-                while os.path.exists(os.path.join(que_dir_path, option + f_ext)):
-                    with open(os.path.join(que_dir_path, option + f_ext), 'r') as f:
-                        opt = f.readlines()
-
-                    num_of_tokens_in_opt = 0
-                    for sent in opt:
+                    num_of_tokens_in_que = 0
+                    for sent in ques:
                         words = word_tokenize(sent)
-                        num_of_tokens_in_opt += len(words)
+                        num_of_tokens_in_que += len(words)
 
-                    num_opt_token_list.append(num_of_tokens_in_opt)
-                    option = chr(ord(option) + 1)
+                    num_que_token_list.append(num_of_tokens_in_que)
+
+                    # process DQ and NDQ
+                    with open(os.path.join(que_dir_path, closest_sent_fname + f_ext), 'r') as f:
+                        sents = f.readlines()
+                    num_of_tokens_in_sents = 0
+                    for sent in sents:
+                        words = word_tokenize(sent)
+                        num_of_tokens_in_sents += len(words)
+                    num_sent_token_list.append(num_of_tokens_in_sents)
+                    if num_of_tokens_in_sents == 0:
+                        print('Lesson : ', lesson)
+                        print('Question : ', que)
+
+                    option = 'a'
+                    while os.path.exists(os.path.join(que_dir_path, option + f_ext)):
+                        with open(os.path.join(que_dir_path, option + f_ext), 'r') as f:
+                            opt = f.readlines()
+
+                        num_of_tokens_in_opt = 0
+                        for sent in opt:
+                            words = word_tokenize(sent)
+                            num_of_tokens_in_opt += len(words)
+
+                        num_opt_token_list.append(num_of_tokens_in_opt)
+                        option = chr(ord(option) + 1)
 
         que_lenth_dict = nltk.FreqDist(x for x in num_que_token_list)
         print('Question length info')
@@ -392,7 +393,7 @@ class read_json():
             print(str(k), str(v))
         print('Max Closest sentence length : ', max(num_sent_token_list))
 
-    def read_json_do_sanity_create_closest_sent_(self, word2vec_path):
+    def read_json_do_sanity_create_closest_sent(self, word2vec_path):
         self.read_content()
         processed_data_path = os.path.dirname(self.op_dir)
         read_training_json = get_closest_sentences(processed_data_path)

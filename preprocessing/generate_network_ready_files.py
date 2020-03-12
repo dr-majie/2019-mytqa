@@ -154,45 +154,45 @@ class generate_network_ready_files():
             questions_dir = self.get_list_of_dirs(l_dir)
             questions_dir = [name for name in questions_dir]
             for question_dir in questions_dir:
-                file_list = self.get_list_of_files(os.path.join(l_dir, question_dir))
-
                 if not os.path.exists(os.path.join(op_l_dir, question_dir)):
                     os.makedirs(os.path.join(op_l_dir, question_dir))
-
-                print('Question : ', question_dir)
-                for fname in file_list:
-                    if fname == 'correct_answer.txt':
-                        is_correct_answer_file = True
-                    else:
-                        is_correct_answer_file = False
-
-                    with open(os.path.join(l_dir, question_dir, fname), 'r') as f:
-                        if fname == 'closest_sent.txt':
-                            is_closest_para_file = True
-                            try:
-                                text = f.readlines()[0]
-                                raw_data_content = ''
-                                count = 0
-                                for s in sent_tokenize(text):
-                                    if len(s.split()) > self.num_of_words_in_sent:
-                                        raw_data_content += ' '.join(s.split()[:self.num_of_words_in_sent])
-                                        raw_data_content += '. '
-                                    else:
-                                        raw_data_content += ' '.join(s.split())
-                                        raw_data_content += ' '
-
-                                    count += 1
-                                    if count == self.num_of_sents_in_closest_para:
-                                        break
-                            except:
-                                raw_data_content = f.readlines()
+                if question_dir.startswith("NDQ") or question_dir.startswith("DQ"):
+                    file_list = self.get_list_of_files(os.path.join(l_dir, question_dir))
+                    print('Question : ', question_dir)
+                    for fname in file_list:
+                        if fname == 'correct_answer.txt':
+                            is_correct_answer_file = True
                         else:
-                            is_closest_para_file = False
-                            raw_data_content = f.readlines()
+                            is_correct_answer_file = False
 
-                    f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'w')
-                    self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file, is_closest_para_file)
-                    f.close()
+                        with open(os.path.join(l_dir, question_dir, fname), 'r') as f:
+                            if fname == 'closest_sent.txt':
+                                is_closest_para_file = True
+                                try:
+                                    text = f.readlines()[0]
+                                    raw_data_content = ''
+                                    count = 0
+                                    for s in sent_tokenize(text):
+                                        if len(s.split()) > self.num_of_words_in_sent:
+                                            raw_data_content += ' '.join(s.split()[:self.num_of_words_in_sent])
+                                            raw_data_content += '. '
+                                        else:
+                                            raw_data_content += ' '.join(s.split())
+                                            raw_data_content += ' '
+
+                                        count += 1
+                                        if count == self.num_of_sents_in_closest_para:
+                                            break
+                                except:
+                                    raw_data_content = f.readlines()
+                            else:
+                                is_closest_para_file = False
+                                raw_data_content = f.readlines()
+
+                        f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'w')
+                        self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
+                                                is_closest_para_file)
+                        f.close()
             print(20 * '***')
 
         print('saving final unknown word2vec dictionary to file')
