@@ -188,11 +188,14 @@ class generate_network_ready_files():
                             else:
                                 is_closest_para_file = False
                                 raw_data_content = f.readlines()
+                        if fname == 'coordinate.txt':
+                            pass
+                        else:
+                            f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'wb')
+                            self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
+                                                    is_closest_para_file)
+                            f.close()
 
-                        f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'w')
-                        self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
-                                                is_closest_para_file)
-                        f.close()
             print(20 * '***')
 
         print('saving final unknown word2vec dictionary to file')
