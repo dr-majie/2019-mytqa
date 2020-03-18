@@ -21,23 +21,36 @@ def get_list_of_dirs(dir_path):
     return dirlist
 
 
+def detect_exception(tup, words):
+    if tup[1] > len(words) or tup[2] > len(words):
+        return False
+
+    if 'ROOT' in tup:
+        return False
+
+    if words[tup[1] - 1] in str(string.punctuation) or words[tup[2] - 1] in str(string.punctuation):
+        return False
+
+    return True
+
 def convert_num2words(tuple_list, words):
     return [(tup[0], words[tup[1] - 1].lower(), words[tup[2] - 1].lower()) for tup in tuple_list if
-            ('ROOT' not in tup) and ('punct' not in tup)]
+            detect_exception(tup, words)]
 
 
-def get_dependency_parsing(closest_sent_path):
-    scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
+def get_dependency_parsing(closest_sent_path, scp):
     dependency_trees = []
 
     with open(closest_sent_path, 'r') as f_closest_sent:
         closest_sents = f_closest_sent.readlines()[0]
         closest_sents = sent_tokenize(closest_sents)
         for sent in closest_sents:
-            sent = sent.translate(str.maketrans('', '', string.punctuation)).lower()
             tree = scp.dependency_parse(sent)
+            print(tree)
             words = word_tokenize(sent)
+            print(sent)
             tree = convert_num2words(tree, words)
+            print('-----', tree)
             dependency_trees.append(tree)
     scp.close()
     return dependency_trees
@@ -75,10 +88,10 @@ def get_vec_for_word(model, word):
         return vec
 
 
-def build_textual_graph(que_path, graph_que_ins_path, model):
+def build_textual_graph(que_path, graph_que_ins_path, model, scp):
     anchor_nodes_of_que = get_anchor_nodes_of_que(que_path)
     anchor_nodes_all = get_anchor_nodes_of_all(que_path, anchor_nodes_of_que)
-    dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'))
+    dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
     option = 'a'
 
     for anchor_nodes in anchor_nodes_all:
@@ -148,7 +161,7 @@ def get_anchor_nodes_of_all(que_path, anchor_nodes_of_que):
 
 
 if __name__ == '__main__':
-    nlp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
+    scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
     slice_path = ['train', 'val', 'test']
     word2vec_path = '/data/kf/majie/wangyaxian/2019-tqa/word2vec/GoogleNews-vectors-negative300.bin.gz'
     model = KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
@@ -174,4 +187,5 @@ if __name__ == '__main__':
                 elif que_ins.startswith('DQ'):
                     pass
                 else:
-                    build_textual_graph(que_ins_path, graph_que_ins_path, model)
+                    build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
+    scp.close()
