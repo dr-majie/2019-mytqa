@@ -46,11 +46,8 @@ def get_dependency_parsing(closest_sent_path, scp):
         closest_sents = sent_tokenize(closest_sents)
         for sent in closest_sents:
             tree = scp.dependency_parse(sent)
-            print(tree)
             words = word_tokenize(sent)
-            print(sent)
             tree = convert_num2words(tree, words)
-            print('-----', tree)
             dependency_trees.append(tree)
     scp.close()
     return dependency_trees
