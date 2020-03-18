@@ -45,6 +45,7 @@ def get_dependency_parsing(closest_sent_path, scp):
         closest_sents = f_closest_sent.readlines()[0]
         closest_sents = sent_tokenize(closest_sents)
         for sent in closest_sents:
+            sent = sent.replace('-', ' ')
             tree = scp.dependency_parse(sent)
             words = word_tokenize(sent)
             tree = convert_num2words(tree, words)
