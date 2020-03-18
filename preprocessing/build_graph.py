@@ -49,7 +49,6 @@ def get_dependency_parsing(closest_sent_path, scp):
             words = word_tokenize(sent)
             tree = convert_num2words(tree, words)
             dependency_trees.append(tree)
-    scp.close()
     return dependency_trees
 
 
