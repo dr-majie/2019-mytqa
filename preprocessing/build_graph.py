@@ -49,6 +49,7 @@ def get_dependency_parsing(closest_sent_path, scp):
             tree = scp.dependency_parse(sent)
             words = word_tokenize(sent)
             tree = convert_num2words(tree, words)
+            print(tree)
             dependency_trees.append(tree)
     return dependency_trees
 
@@ -119,13 +120,14 @@ def build_textual_graph(que_path, graph_que_ins_path, model, scp):
 
         with open(os.path.join(graph_que_ins_path, option + '.pkl'), 'wb') as f_graph:
             pickle.dump(adjacency_matrix, f_graph)
-        option = chr(ord(option) + 1)
 
         for node in node_dict:
             node_dict[node] = get_vec_for_word(model, node)
 
-        with open(os.path.join(graph_que_ins_path, 'node_embedding.pkl'), 'wb') as f_node_emb:
+        with open(os.path.join(graph_que_ins_path, 'embedding_' + option + '.pkl'), 'wb') as f_node_emb:
             pickle.dump(node_dict, f_node_emb)
+
+        option = chr(ord(option) + 1)
 
 
 def get_anchor_nodes_of_que(que_path):
@@ -159,7 +161,7 @@ def get_anchor_nodes_of_all(que_path, anchor_nodes_of_que):
 
 if __name__ == '__main__':
     scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
-    slice_path = ['train', 'val', 'test']
+    slice_path = ['test']
     word2vec_path = '/data/kf/majie/wangyaxian/2019-tqa/word2vec/GoogleNews-vectors-negative300.bin.gz'
     model = KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
 
