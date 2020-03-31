@@ -23,7 +23,7 @@ if __name__ == '__main__':
     print_obj(cfg)
 
     print('***************************Begin to process data***************************')
-    #fix numpy seed
+    # fix numpy seed
     np.random.seed(cfg.seed)
     # fix random seed
     random.seed(cfg.seed)

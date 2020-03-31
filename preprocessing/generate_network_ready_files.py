@@ -5,7 +5,8 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import pickle
 import string
 from preprocessing.read_json import read_json
-from preprocessing.build_graph import build_diagram_graph, get_anchor_nodes_of_que, get_anchor_nodes_of_all, get_dependency_parsing, detect_exception,convert_num2words
+from preprocessing.build_graph import build_diagram_graph, get_anchor_nodes_of_que, get_anchor_nodes_of_all, \
+    get_dependency_parsing, detect_exception, convert_num2words
 import torch
 from stanfordcorenlp import StanfordCoreNLP
 import torch.nn.functional as F
@@ -78,7 +79,7 @@ class generate_network_ready_files():
                 self.unknown_words_vec_dict = {}
 
         if self.unknown_words_vec_dict.get(word, None) is not None:
-            #print('word present in dictionary : ', word)
+            # print('word present in dictionary : ', word)
             vec = self.unknown_words_vec_dict.get(word, None)
         else:
             #print('word is not present in dictionary : ', word)
@@ -189,7 +190,6 @@ class generate_network_ready_files():
             option = chr(ord(option) + 1)
         print(node_count)
 
-
     def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path):
         for node in node_dict:
             if len(node) == 1:
@@ -199,7 +199,7 @@ class generate_network_ready_files():
                 words = word_tokenize(node)
                 words = [w for w in words if w not in string.punctuation]
                 for word in words:
-                    vec_arr.append(self.get_vec_for_word(model, word).reshape(300,))
+                    vec_arr.append(self.get_vec_for_word(model, word).reshape(300, ))
                 vec_sum = np.array(vec_arr).sum(axis=1)
                 vec_sum_input = torch.from_numpy(np.array([vec_sum]))
                 att_vec = F.softmax(vec_sum_input, dim=1)
@@ -319,5 +319,3 @@ class generate_network_ready_files():
         f = open(os.path.join(self.common_files_path, self.unknown_words_vec_dict_file), 'wb')
         pickle.dump(self.unknown_words_vec_dict, f)
         f.close()
-
-
