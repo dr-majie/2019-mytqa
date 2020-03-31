@@ -5,6 +5,12 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import pickle
 import string
 from preprocessing.read_json import read_json
+from preprocessing.build_graph import build_diagram_graph, get_anchor_nodes_of_que, get_anchor_nodes_of_all, \
+    get_dependency_parsing, detect_exception, convert_num2words
+import torch
+from stanfordcorenlp import StanfordCoreNLP
+import torch.nn.functional as F
+import collections
 
 
 class generate_network_ready_files():
@@ -14,6 +20,8 @@ class generate_network_ready_files():
         self.raw_text_path = os.path.join(processed_data_path, 'text_question_sep_files')
         self.is_test_data = is_test_data
         self.word2vec_path = word2vec_path
+
+        self.raw_diagram_path = os.path.join(processed_data_path, 'graph_files')
 
         if not os.path.exists(self.raw_text_path):
             read_json_data = read_json(os.path.dirname(processed_data_path), is_test_data)
@@ -71,10 +79,10 @@ class generate_network_ready_files():
                 self.unknown_words_vec_dict = {}
 
         if self.unknown_words_vec_dict.get(word, None) is not None:
-            print('word present in dictionary : ', word)
+            # print('word present in dictionary : ', word)
             vec = self.unknown_words_vec_dict.get(word, None)
         else:
-            print('word is not present in dictionary : ', word)
+            #print('word is not present in dictionary : ', word)
             vec = np.random.rand(1, self.word_vec_size)
             self.unknown_words_vec_dict[word] = vec
         return vec
@@ -84,7 +92,7 @@ class generate_network_ready_files():
             vec = model[word]
             return vec
         except:
-            print('Vector not in model for word: ', word)
+            #print('Vector not in model for word: ', word)
             vec = self.handle_unknown_words(word)
             return vec
 
@@ -137,13 +145,86 @@ class generate_network_ready_files():
         pickle.dump(all_vec_array, word2vec_file)
         word2vec_file.close()
 
+    def build_textual_graph(self, que_path, graph_que_ins_path, model, scp):
+        anchor_nodes_of_que = get_anchor_nodes_of_que(que_path)
+        anchor_nodes_all = get_anchor_nodes_of_all(que_path, anchor_nodes_of_que)
+        dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
+        option = 'a'
+        node_count = []
+        for anchor_nodes in anchor_nodes_all:
+            node_of_graph = set()
+            relation = set()
+            # building graph (que, option)
+            for depth in range(2):
+                for node in anchor_nodes:
+                    for tree in dependency_trees:
+                        for edge in tree:
+                            if node in edge:
+                                relation.add(edge)
+                                node_of_graph.add(edge[1])
+                                node_of_graph.add(edge[2])
+                anchor_nodes = set()
+                anchor_nodes.update(node_of_graph)
+
+            size = len(node_of_graph)
+            adjacency_matrix = np.zeros((size, size))
+            node_dict = collections.OrderedDict()
+
+            for i, node in enumerate(node_of_graph):
+                node_dict[node] = i
+
+            for edge in relation:
+                adjacency_matrix[node_dict[edge[1]]][node_dict[edge[2]]] = 1
+                adjacency_matrix[node_dict[edge[2]]][node_dict[edge[1]]] = 1
+
+            with open(os.path.join(graph_que_ins_path, 'adjacency_matrix_' + option + '.pkl'), 'wb') as f_graph:
+                pickle.dump(adjacency_matrix, f_graph)
+
+            for node in node_dict:
+                node_dict[node] = self.get_vec_for_word(model, node)
+
+            with open(os.path.join(graph_que_ins_path, 'node_embedding_' + option + '.pkl'), 'wb') as f_node_emb:
+                pickle.dump(node_dict, f_node_emb)
+
+            node_count.append(len(node_dict))
+            option = chr(ord(option) + 1)
+        print(node_count)
+
+    def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path):
+        for node in node_dict:
+            if len(node) == 1:
+                node_dict[node] = self.get_vec_for_word(model, node)
+            else:
+                vec_arr = []
+                words = word_tokenize(node)
+                words = [w for w in words if w not in string.punctuation]
+                for word in words:
+                    vec_arr.append(self.get_vec_for_word(model, word).reshape(300, ))
+                vec_sum = np.array(vec_arr).sum(axis=1)
+                vec_sum_input = torch.from_numpy(np.array([vec_sum]))
+                att_vec = F.softmax(vec_sum_input, dim=1)
+                vec_arr = torch.from_numpy(np.array(vec_arr))
+                weighted_vec = torch.mm(att_vec, vec_arr)
+                node_dict[node] = weighted_vec
+
+        with open(os.path.join(graph_que_ins_path, 'node_embedding.pkl'), 'wb') as f_node_emb:
+            pickle.dump(node_dict, f_node_emb)
+        with open(os.path.join(graph_que_ins_path, 'adjacency_matrix_diagram' + '.pkl'), 'wb') as f_graph:
+            pickle.dump(adjacency_matrix, f_graph)
+
     def generate_word2vec_for_all(self):
 
         print(20 * '*')
         print('GENERATING NETWORK READY FILES.')
         model = KeyedVectors.load_word2vec_format(self.word2vec_path, binary=True)
+        scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
 
+        max_nodes_of_lessons = []
+        min_nodes_of_lessons = []
         for lesson in self.lessons_list:
+            node_count_dq = []
+            node_count_dd = []
+
             l_dir = os.path.join(self.raw_text_path, lesson)
             print('Lesson : ', lesson)
             op_l_dir = os.path.join(self.op_path, lesson)
@@ -154,11 +235,12 @@ class generate_network_ready_files():
             questions_dir = self.get_list_of_dirs(l_dir)
             questions_dir = [name for name in questions_dir]
             for question_dir in questions_dir:
+                print('Question : ', question_dir)
                 if not os.path.exists(os.path.join(op_l_dir, question_dir)):
                     os.makedirs(os.path.join(op_l_dir, question_dir))
                 if question_dir.startswith("NDQ") or question_dir.startswith("DQ"):
                     file_list = self.get_list_of_files(os.path.join(l_dir, question_dir))
-                    print('Question : ', question_dir)
+                    # print('Question : ', question_dir)
                     for fname in file_list:
                         if fname == 'correct_answer.txt':
                             is_correct_answer_file = True
@@ -196,7 +278,42 @@ class generate_network_ready_files():
                                                     is_closest_para_file)
                             f.close()
 
+                que_ins_path = os.path.join(l_dir, question_dir)
+                graph_que_ins_path = os.path.join(op_l_dir, question_dir)
+                if question_dir.startswith('DQ'):
+                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DQ')
+                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
+                    self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
+                    node_count_dq.append(len(node_dict))
+                elif question_dir.startswith('DD'):
+                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DD')
+                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
+                    node_count_dd.append(len(node_dict))
+                else:
+                    self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
+
+            if len(node_count_dq) != 0 or len(node_count_dd) != 0:
+                if len(node_count_dq) != 0:
+                    print("count of dq nodes:", node_count_dq)
+                    print("count of DQ:", len(node_count_dq))
+                    print("max count of dq nodes:", max(node_count_dq))
+                    max_nodes_of_lessons.append(max(node_count_dq))
+                    print("min count of dq nodes:", min(node_count_dq))
+                    min_nodes_of_lessons.append(min(node_count_dq))
+                if len(node_count_dd) != 0:
+                    print("count of dd nodes:", node_count_dd)
+                    print("count of DD:", len(node_count_dd))
+                    print("max count of dd nodes:", max(node_count_dd))
+                    max_nodes_of_lessons.append(max(node_count_dd))
+                    print("min count of dd nodes:", min(node_count_dd))
+                    min_nodes_of_lessons.append(min(node_count_dd))
+            else:
+                print("the lesson only has NDQ")
+
             print(20 * '***')
+        scp.close()
+        print("max count of nodes in all lessons:", max(max_nodes_of_lessons))
+        print("min count of nodes in all lessons:", min(min_nodes_of_lessons))
 
         print('saving final unknown word2vec dictionary to file')
         f = open(os.path.join(self.common_files_path, self.unknown_words_vec_dict_file), 'wb')

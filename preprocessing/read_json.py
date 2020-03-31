@@ -243,11 +243,10 @@ class read_json():
                                     json_dict[img_name] = img_info_list
                                     json.dump(json_dict, f)
 
-                        if not self.is_test_data:
-                            correct_answer = lessons[qs_tag][q_tag][q_id]['correctAnswer']['processedText']
-                            corr_f_handle = open(os.path.join(q_dir, 'correct_answer.txt'), 'w')
-                            corr_f_handle.write(correct_answer + '\n')
-                            corr_f_handle.close()
+                        correct_answer = lessons[qs_tag][q_tag][q_id]['correctAnswer']['processedText']
+                        corr_f_handle = open(os.path.join(q_dir, 'correct_answer.txt'), 'w')
+                        corr_f_handle.write(correct_answer + '\n')
+                        corr_f_handle.close()
 
     def get_questions_id(self):
         l_id_tag = 'globalID'
@@ -298,23 +297,23 @@ class read_json():
                     if closest_sent_fname + f_ext not in file_list:
                         print("Closest sentence file doesn't exist")
 
-                    if not self.is_test_data:
-                        with open(os.path.join(que_dir_path, corr_ans_fname + f_ext), 'r') as f:
-                            correct_answer = f.readlines()
+                    # if not self.is_test_data:
+                    with open(os.path.join(que_dir_path, corr_ans_fname + f_ext), 'r') as f:
+                        correct_answer = f.readlines()
 
-                        correct_answer = correct_answer[0].strip().lower()
-                        option = 'a'
+                    correct_answer = correct_answer[0].strip().lower()
+                    option = 'a'
 
-                        while ord(option) <= ord(correct_answer):
-                            if option + f_ext not in file_list:
-                                wrong_que += 1
-                                print('Correct answer is : ', correct_answer)
-                                print("Error : Option file doesn't exist", option + f_ext)
-                                shutil.rmtree(que_dir_path)
-                                break
-                            option = chr(ord(option) + 1)
-                    else:
-                        print('cant check correctness of options as this is test data')
+                    while ord(option) <= ord(correct_answer):
+                        if option + f_ext not in file_list:
+                            wrong_que += 1
+                            print('Correct answer is : ', correct_answer)
+                            print("Error : Option file doesn't exist", option + f_ext)
+                            shutil.rmtree(que_dir_path)
+                            break
+                        option = chr(ord(option) + 1)
+                    # else:
+                    #     print('cant check correctness of options as this is test data')
 
             print(20 * '**')
 
@@ -380,18 +379,21 @@ class read_json():
         for k, v in que_lenth_dict.most_common(50):
             print(str(k), str(v))
         print('Max question length : ', max(num_que_token_list))
-        opt_lenth_dict = nltk.FreqDist(x for x in num_opt_token_list)
+        print('Min question length : ', min(num_que_token_list))
 
+        opt_lenth_dict = nltk.FreqDist(x for x in num_opt_token_list)
         print('Option length info')
         for k, v in opt_lenth_dict.most_common(50):
             print(str(k), str(v))
         print('Max Option length : ', max(num_opt_token_list))
+        print('Min Option length : ', min(num_opt_token_list))
 
         sent_lenth_dict = nltk.FreqDist(x for x in num_sent_token_list)
         print('Closest sentence info')
         for k, v in sent_lenth_dict.most_common(1000):
             print(str(k), str(v))
         print('Max Closest sentence length : ', max(num_sent_token_list))
+        print('Min Closest sentence length : ', min(num_sent_token_list))
 
     def read_json_do_sanity_create_closest_sent(self, word2vec_path):
         self.read_content()

@@ -22,6 +22,7 @@ class Config(object):
         self.validation_steps_dq = 16
         self.steps_per_epoch_ndq = 333
         self.validation_steps_ndq = 100
+        self.seed = 72
         self.train_data_path = 'data/train/processed_data/one_hot_files'
         self.val_data_path = 'data/val/processed_data/one_hot_files'
         self.test_data_path = 'data/test/processed_data/one_hot_files'
