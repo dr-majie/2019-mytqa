@@ -21,8 +21,6 @@ import torch.nn.functional as F
 import string
 import copy
 
-
-
 def get_list_of_dirs(dir_path):
     dirlist = [name for name in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, name))]
     dirlist.sort()
@@ -65,6 +63,7 @@ def get_dependency_parsing(closest_sent_path, scp):
             tree = convert_num2words(tree, words)
             dependency_trees.append(tree)
     return dependency_trees
+
 
 def get_anchor_nodes_of_que(que_path):
     anchor_nodes_of_que = set()
