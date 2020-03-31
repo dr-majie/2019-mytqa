@@ -13,6 +13,14 @@ import pickle
 from gensim.models import KeyedVectors
 from stanfordcorenlp import StanfordCoreNLP
 from nltk.tokenize import word_tokenize, sent_tokenize
+import json
+from PIL import Image
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import string
+import copy
+
 
 
 def get_list_of_dirs(dir_path):
@@ -28,23 +36,30 @@ def detect_exception(tup, words):
     if 'ROOT' in tup:
         return False
 
-    if words[tup[1] - 1] in str(string.punctuation) or words[tup[2] - 1] in str(string.punctuation):
+    if 'punct' in tup:
         return False
 
+    if words[tup[1] - 1] in str(string.punctuation) or words[tup[2] - 1] in str(string.punctuation):
+        return False
+    # if words[tup[1] - 1] in string.punctuation or words[tup[2] - 1] in string.punctuation:
+    #     return False
     return True
 
+
 def convert_num2words(tuple_list, words):
+    # for tup in tuple_list:
+    #     print(tup)
     return [(tup[0], words[tup[1] - 1].lower(), words[tup[2] - 1].lower()) for tup in tuple_list if
             detect_exception(tup, words)]
 
 
 def get_dependency_parsing(closest_sent_path, scp):
     dependency_trees = []
-
     with open(closest_sent_path, 'r') as f_closest_sent:
         closest_sents = f_closest_sent.readlines()[0]
         closest_sents = sent_tokenize(closest_sents)
         for sent in closest_sents:
+            sent = sent.replace('-', ' ')
             tree = scp.dependency_parse(sent)
             words = word_tokenize(sent)
             tree = convert_num2words(tree, words)
@@ -52,79 +67,80 @@ def get_dependency_parsing(closest_sent_path, scp):
     return dependency_trees
 
 
-def handle_unknown_words(word):
-    unknown_word_file_path = '/data/kf/majie/wangyaxian/2019-tqa/data/common_file/'
-
-    if os.path.exists(unknown_word_file_path):
-        with open(os.path.join(unknown_word_file_path, 'unknown_word_vec_dict.pkl'), 'rb') as f_unknown_word:
-            unknown_word_vec_dict = pickle.load(f_unknown_word)
-    else:
-        print('unknown word dictionary is not existing')
-        os.makedirs(unknown_word_file_path)
-        unknown_word_vec_dict = {}
-
-    if unknown_word_vec_dict.get(word, None) is not None:
-        vec = unknown_word_vec_dict.get(word)
-    else:
-        vec = np.random.rand(1, 300)
-        unknown_word_vec_dict[word] = vec
-
-        with open(os.path.join(unknown_word_file_path, 'unknown_word_vec_dict.pkl'), 'wb') as f_unknown_word:
-            pickle.dump(unknown_word_vec_dict, f_unknown_word)
-    return vec
-
-
-def get_vec_for_word(model, word):
-    try:
-        vec = model[word]
-        return vec
-    except:
-        print('Vector not in model for word: ', word)
-        vec = handle_unknown_words(word)
-        return vec
-
-
-def build_textual_graph(que_path, graph_que_ins_path, model, scp):
-    anchor_nodes_of_que = get_anchor_nodes_of_que(que_path)
-    anchor_nodes_all = get_anchor_nodes_of_all(que_path, anchor_nodes_of_que)
-    dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
-    option = 'a'
-
-    for anchor_nodes in anchor_nodes_all:
-        node_of_graph = set()
-        relation = set()
-        # building graph (que, option)
-        for depth in range(2):
-            for node in anchor_nodes:
-                for tree in dependency_trees:
-                    for edge in tree:
-                        if node in edge:
-                            relation.add(edge)
-                            node_of_graph.add(edge[1])
-                            node_of_graph.add(edge[2])
-            anchor_nodes = set()
-            anchor_nodes.update(node_of_graph)
-
-        size = len(node_of_graph)
-        adjacency_matrix = np.zeros((size, size))
-        node_dict = collections.OrderedDict()
-
-        for i, node in enumerate(node_of_graph):
-            node_dict[node] = i
-
-        for edge in relation:
-            adjacency_matrix[node_dict[edge[1]]][node_dict[edge[2]]] = 1
-            adjacency_matrix[node_dict[edge[2]]][node_dict[edge[1]]] = 1
-
-        with open(os.path.join(graph_que_ins_path, option + '.pkl'), 'wb') as f_graph:
-            pickle.dump(adjacency_matrix, f_graph)
-        option = chr(ord(option) + 1)
-
-        for node in node_dict:
-            node_dict[node] = get_vec_for_word(model, node)
-
-        with open(os.path.join(graph_que_ins_path, 'node_embedding.pkl'), 'wb') as f_node_emb:
-            pickle.dump(node_dict, f_node_emb)
+# def handle_unknown_words(word):
+#     unknown_word_file_path = '/data/kf/majie/wangyaxian/2019-tqa/data/common_file/'
+#
+#     if os.path.exists(unknown_word_file_path):
+#         with open(os.path.join(unknown_word_file_path, 'unknown_word_vec_dict.pkl'), 'rb') as f_unknown_word:
+#             unknown_word_vec_dict = pickle.load(f_unknown_word)
+#     else:
+#         print('unknown word dictionary is not existing')
+#         os.makedirs(unknown_word_file_path)
+#         unknown_word_vec_dict = {}
+#
+#     if unknown_word_vec_dict.get(word, None) is not None:
+#         vec = unknown_word_vec_dict.get(word, None)
+#     else:
+#         vec = np.random.rand(1, 300)
+#         unknown_word_vec_dict[word] = vec
+#
+#         with open(os.path.join(unknown_word_file_path, 'unknown_word_vec_dict.pkl'), 'wb') as f_unknown_word:
+#             pickle.dump(unknown_word_vec_dict, f_unknown_word)
+#     return vec
+#
+#
+# def get_vec_for_word(model, word):
+#     try:
+#         vec = model[word]
+#         return vec
+#     except:
+#         print('Vector not in model for word: ', word)
+#         vec = handle_unknown_words(word)
+#         return vec
+#
+#
+# def build_textual_graph(que_path, graph_que_ins_path, model, scp):
+#     anchor_nodes_of_que = get_anchor_nodes_of_que(que_path)
+#     anchor_nodes_all = get_anchor_nodes_of_all(que_path, anchor_nodes_of_que)
+#     dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
+#     option = 'a'
+#
+#     for anchor_nodes in anchor_nodes_all:
+#         node_of_graph = set()
+#         relation = set()
+#         # building graph (que, option)
+#         for depth in range(2):
+#             for node in anchor_nodes:
+#                 for tree in dependency_trees:
+#                     for edge in tree:
+#                         if node in edge:
+#                             relation.add(edge)
+#                             node_of_graph.add(edge[1])
+#                             node_of_graph.add(edge[2])
+#             anchor_nodes = set()
+#             anchor_nodes.update(node_of_graph)
+#
+#         size = len(node_of_graph)
+#         adjacency_matrix = np.zeros((size, size))
+#         node_dict = collections.OrderedDict()
+#
+#         for i, node in enumerate(node_of_graph):
+#             node_dict[node] = i
+#
+#         for edge in relation:
+#             adjacency_matrix[node_dict[edge[1]]][node_dict[edge[2]]] = 1
+#             adjacency_matrix[node_dict[edge[2]]][node_dict[edge[1]]] = 1
+#
+#         with open(os.path.join(graph_que_ins_path, option + 'graph' + '.pkl'), 'wb') as f_graph:
+#             pickle.dump(adjacency_matrix, f_graph)
+#
+#         for node in node_dict:
+#             node_dict[node] = get_vec_for_word(model, node)
+#
+#         with open(os.path.join(graph_que_ins_path, 'node_embedding_' + option + '.pkl'), 'wb') as f_node_emb:
+#             pickle.dump(node_dict, f_node_emb)
+#
+#         option = chr(ord(option) + 1)
 
 
 def get_anchor_nodes_of_que(que_path):
@@ -156,32 +172,118 @@ def get_anchor_nodes_of_all(que_path, anchor_nodes_of_que):
     return anchor_nodes_all
 
 
-if __name__ == '__main__':
+def build_diagram_graph(que_path, diagram_type):
     scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
-    slice_path = ['train', 'val', 'test']
-    word2vec_path = '/data/kf/majie/wangyaxian/2019-tqa/word2vec/GoogleNews-vectors-negative300.bin.gz'
-    model = KeyedVectors.load_word2vec_format(word2vec_path, binary=True)
-
-    for path in slice_path:
-        data_path = '/data/kf/majie/wangyaxian/2019-tqa/data/' + path + '/processed_data/text_question_sep_files/'
-        graph_path = '/data/kf/majie/wangyaxian/2019-tqa/data/' + path + '/processed_data/graph_files'
-        lesson_list = get_list_of_dirs(data_path)
-
-        for lesson in lesson_list:
-            lesson_path = os.path.join(data_path, lesson)
-            lesson_graph_path = os.path.join(graph_path, lesson)
-            que_ins_list = get_list_of_dirs(lesson_path)
-
-            for que_ins in que_ins_list:
-                que_ins_path = os.path.join(lesson_path, que_ins)
-                graph_que_ins_path = os.path.join(lesson_graph_path, que_ins)
-                if not os.path.exists(graph_que_ins_path):
-                    os.makedirs(graph_que_ins_path)
-
-                if que_ins.startswith('DD'):
-                    pass
-                elif que_ins.startswith('DQ'):
-                    pass
-                else:
-                    build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
+    if diagram_type == 'DQ':
+        diagram_info, nodes_of_diagram = get_info_of_diagram_DQ(que_path)
+        dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
+    else:
+        diagram_info, nodes_of_diagram = get_info_of_diagram_DD(que_path)
+        file_names = os.listdir(que_path + '/')
+        image_info_url = [os.path.join(que_path + '/', file) for file in file_names if file.endswith(".txt")]
+        with open(image_info_url[0], 'r') as load_f:
+            image_info = json.load(load_f)
+            text_info = image_info['dd_text']
+            text_sents = sent_tokenize(text_info)
+        dependency_trees = []
+        for sent in text_sents:
+            sent = sent.replace('-', ' ')
+            tree = scp.dependency_parse(sent)
+            words = word_tokenize(sent)
+            tree = convert_num2words(tree, words)
+            dependency_trees.append(tree)
     scp.close()
+    img_name = [name for name in os.listdir(que_path) if name.endswith(".png")]
+    img_url = os.path.join(que_path, img_name[0])
+    image = Image.open(img_url)
+    size = len(diagram_info)
+    adjacency_matrix = np.zeros((size, size))
+    node_of_diagram_graph = set()
+    # relation = set()
+    node_dict = collections.OrderedDict()
+
+    all_dependency_relations = set()
+    for tree in dependency_trees:
+        dependency_relations = set()
+        for edge in tree:
+            edge = (edge[1], edge[2])
+            dependency_relations.add(edge)
+
+        for depth in range(2):
+            single_dependency_relations = copy.deepcopy(dependency_relations)
+            for edgei in single_dependency_relations:
+                for edgej in single_dependency_relations:
+                    if edgei[1] == edgej[0]:
+                        edge = (edgei[0], edgej[1])
+                        dependency_relations.add(edge)
+        for relation in dependency_relations:
+            all_dependency_relations.add(relation)
+
+    relation = set()
+    count_of_relations_in_dependency = 0
+    count_of_relations_in_location = 0
+    flag = 0
+    for i in range(size):
+        for j in range(size):
+            if i != j:
+                node_s = diagram_info[i]['WordText']
+                node_t = diagram_info[j]['WordText']
+                # for tree in dependency_trees:
+                #     for edge in tree:
+                for edge in all_dependency_relations:
+                    if node_s in edge and node_t in edge:
+                        flag = 1
+                        node_of_diagram_graph.add(node_s)
+                        node_of_diagram_graph.add(node_t)
+                        edge_of_diagram = (i, j)
+                        relation.add(edge_of_diagram)
+                        count_of_relations_in_dependency += 1
+                if flag == 0:
+                    xi_axis = diagram_info[i]['Coordinate']['Center'][0]
+                    yi_axis = diagram_info[i]['Coordinate']['Center'][1]
+                    xj_axis = diagram_info[j]['Coordinate']['Center'][0]
+                    yj_axis = diagram_info[j]['Coordinate']['Center'][1]
+                    if max(abs(xi_axis - xj_axis) / image.size[0], abs(yi_axis - yj_axis) / image.size[1]) < 0.3:
+                        node_of_diagram_graph.add(diagram_info[i]['WordText'])
+                        node_of_diagram_graph.add(diagram_info[j]['WordText'])
+                        edge_of_diagram = (i, j)
+                        relation.add(edge_of_diagram)
+                        count_of_relations_in_location += 1
+
+    print("count find by dependency relations", count_of_relations_in_dependency)
+    print("count find by location relations", count_of_relations_in_location)
+    print("count of all relations in diagram", len(relation))
+    # scp.close()
+    for edge in relation:
+        adjacency_matrix[edge[0]][edge[1]] = 1
+        adjacency_matrix[edge[1]][edge[0]] = 1
+
+    for i, node in enumerate(node_of_diagram_graph):
+        node_dict[node] = i
+    return node_dict, adjacency_matrix
+
+
+def get_info_of_diagram_DQ(que_path):
+    nodes_of_diagram = set()
+    with open(os.path.join(que_path, 'coordinate.txt')) as f:
+        dic = json.load(f)
+        for key in dic.keys():
+            diagram_info = dic[key]
+            for detailed_info in diagram_info:
+                wordtext = detailed_info['WordText']
+                nodes_of_diagram.add(wordtext)
+    return diagram_info, nodes_of_diagram
+
+
+def get_info_of_diagram_DD(que_path):
+    # image_info_url = [name for name in os.listdir(que_path) if name.endswith(".txt")]
+    file_names = os.listdir(que_path + '/')
+    image_info_url = [os.path.join(que_path + '/', file) for file in file_names if file.endswith(".txt")]
+    with open(image_info_url[0], 'r') as load_f:
+        image_info = json.load(load_f)
+        diagram_info = image_info['dd_coordinate']
+        nodes_of_diagram = set()
+        for item in diagram_info:
+            wordtext = item['WordText']
+            nodes_of_diagram.add(wordtext)
+    return diagram_info, nodes_of_diagram

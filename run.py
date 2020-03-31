@@ -8,6 +8,8 @@
 
 from configs.config import Config
 from preprocessing.data_prepare import prepare_data
+import numpy as np
+import random
 
 
 def print_obj(obj):
@@ -21,6 +23,11 @@ if __name__ == '__main__':
     print_obj(cfg)
 
     print('***************************Begin to process data***************************')
+    #fix numpy seed
+    np.random.seed(cfg.seed)
+    # fix random seed
+    random.seed(cfg.seed)
+
     train_data = prepare_data(cfg=cfg, processed_data_path=cfg.train_data_path, is_test_data=False)
     val_data = prepare_data(cfg=cfg, processed_data_path=cfg.val_data_path, is_test_data=False)
     test_data = prepare_data(cfg=cfg, processed_data_path=cfg.test_data_path, is_test_data=True)
