@@ -58,7 +58,10 @@ def load_texutal_data(cfg):
                     que_emb = pickle.load(f_que).reshape(-1, cfg.word_emb)
                     x_dim = que_emb.shape[0]
                     pad_dim = cfg.max_que_len - x_dim
-                    que_emb = np.pad(que_emb, ((0, pad_dim), (0, 0)), 'constant', constant_values=(0, 0))
+                    if pad_dim >= 0:
+                        que_emb = np.pad(que_emb, ((0, pad_dim), (0, 0)), 'constant', constant_values=(0, 0))
+                    else:
+                        que_emb = que_emb[:pad_dim]
                     que_list.append(que_emb)
 
                 # load option embedding
@@ -71,7 +74,10 @@ def load_texutal_data(cfg):
                         opt_emb = pickle.load(f_opt).reshape(-1, cfg.word_emb)
                         x_dim = opt_emb.shape[0]
                         pad_dim = cfg.max_opt_len - x_dim
-                        opt_emb = np.pad(opt_emb, ((0, pad_dim), (0, 0)), 'constant', constant_values=(0, 0))
+                        if pad_dim >= 0:
+                            opt_emb = np.pad(opt_emb, ((0, pad_dim), (0, 0)), 'constant', constant_values=(0, 0))
+                        else:
+                            opt_emb = opt_emb[:pad_dim]
                         opt_embs.append(opt_emb)
 
                     # load adjacency matrix of each [quetion, option]
@@ -81,8 +87,11 @@ def load_texutal_data(cfg):
                         idendity_matrix = np.identity(dim)
                         adj_matrix += idendity_matrix
                         pad_dim = cfg.gat_max_nodes - dim
-                        adj_matrix = np.pad(adj_matrix, ((0, pad_dim), (0, pad_dim)), 'constant',
-                                            constant_values=(0, 0))
+                        if pad_dim >= 0:
+                            adj_matrix = np.pad(adj_matrix, ((0, pad_dim), (0, pad_dim)), 'constant',
+                                                constant_values=(0, 0))
+                        else:
+                            adj_matrix = adj_matrix[:pad_dim, :pad_dim]
                         adj_matrices.append(adj_matrix)
 
                     # load node embeddings of each graph
@@ -90,7 +99,10 @@ def load_texutal_data(cfg):
                         node_emb = pickle.load(f_node_emb)
                         expand_node_emb = np.zeros((cfg.gat_max_nodes, cfg.gat_node_emb))
                         for i, emb in enumerate(node_emb.values()):
-                            expand_node_emb[i, :] = emb
+                            if i < cfg.gat_max_nodes:
+                                expand_node_emb[i, :] = emb
+                            else:
+                                break
                         node_embs.append(expand_node_emb)
 
                     assert len(opt_embs) == len(adj_matrices) == len(
@@ -138,11 +150,8 @@ def load_texutal_data(cfg):
 
 
 def make_mask(feature):
-    try:
-        if feature.dim() == 3:
-            return torch.sum(torch.abs(feature), dim=-1) == 0
+    return torch.sum(torch.abs(feature), dim=-1) == 0
 
-        if feature.dim() == 4:
-            return torch.sum((torch.sum(torch.abs(feature), dim=-1)), dim=-1) == 0
-    except Exception as e:
-        print('Note: this feature does not satisfy the required conditions.')
+
+def make_mask_opt_num(feature):
+    return torch.sum((torch.sum(torch.abs(feature), dim=-1)), dim=-1) == 0

@@ -8,8 +8,8 @@
 import torch
 import torch.nn as nn
 from model.gat import GAT
-from model.layer import MultiHeadAttentionLayer
-from utils.util import make_mask
+from model.layer import MultiHeadAttentionLayer, AttFlat
+from utils.util import make_mask, make_mask_opt_num
 import numpy as np
 
 np.set_printoptions(threshold=1e6)
@@ -19,7 +19,7 @@ class TextualNet(nn.Module):
     def __init__(self, cfg):
         super(TextualNet, self).__init__()
         # [batch_size, max_option_count, max_nodes, gat_emb] = [b, 7, 70, 300]
-        self.text_gat = GAT(cfg.gat_max_nodes, cfg.gat_hid, cfg.gat_node_emb, cfg.gat_dropout, cfg.gat_alpha,
+        self.text_gat = GAT(cfg.gat_node_emb, cfg.gat_hid, cfg.gat_node_emb, cfg.gat_dropout, cfg.gat_alpha,
                             cfg.gat_heads)
         # [batch_size, max_option_count, 1, hidden_states] = [b, 7, 1, 300], questions and options are input to lstm respectively.
         self.lstm = nn.LSTM(
@@ -40,31 +40,38 @@ class TextualNet(nn.Module):
         nn.init.xavier_uniform_(self.W.data, gain=1.414)
 
         self.leakyrelu = nn.LeakyReLU(cfg.gat_alpha)
+        self.flat = AttFlat(cfg)
         # [batch_size, max_opt_count, 2 * word_emb, 1]
-        self.classify = nn.Linear(2 * cfg.word_emb, 1)
+        self.classify = nn.Linear(3 * cfg.word_emb, 1)
 
     def forward(self, que_emb, opt_emb, adjacency_matrices, node_emb, cfg):
         que_mask = make_mask(que_emb)
         que_emb, _ = self.lstm(que_emb)
+        que_emb = que_emb.repeat(1, 1, cfg.max_opt_count, 1)
+        que_emb = torch.reshape(que_emb, (cfg.batch_size, cfg.max_opt_count, cfg.max_que_len, cfg.word_emb))
 
-        option_mask = make_mask(opt_emb)
+        opt_mask = make_mask(opt_emb)
+        opt_mask_num = make_mask_opt_num(opt_emb)
         opt_emb = torch.reshape(opt_emb, (-1, cfg.max_opt_len, cfg.word_emb))
         opt_emb, _ = self.lstm(opt_emb)
         opt_emb = torch.reshape(opt_emb, (cfg.batch_size, cfg.max_opt_count, cfg.max_opt_len, cfg.word_emb))
 
-        sent_que_emb = sent_que_emb.repeat(1, cfg.max_opt_count, 1)
-        sent_opt_emb = sent_opt_emb.repeat(1, cfg.max_opt_count, 1)
-        # [batch_size, 7, word_emb]
-        sent_emb = sent_que_emb + sent_opt_emb
-
-        gat_node_emb = self.text_gat(node_emb, adjacency_matrices)
+        gat_node_emb = self.text_gat(node_emb, adjacency_matrices, cfg)
         # [batch_size, max_opt, max_nodes, gat_node_emb]
-        gat_node_emb = self.att(gat_node_emb, sent_emb, sent_emb)
+        gat_node_emb = self.att(gat_node_emb, que_emb, que_emb, cfg)
         # [batch_size, max_opt, 1, gat_node_emb]
         graph_emb = self.leakyrelu(torch.matmul(self.W, gat_node_emb))
-
-        fusion_feat = torch.cat((sent_emb, graph_emb), sent_emb.shape[-1])
+        graph_emb = graph_emb.squeeze(2)
+        que_mask = torch.reshape(que_mask.repeat(1, cfg.max_opt_count),
+                                 (cfg.batch_size, cfg.max_opt_count, cfg.max_que_len))
+        que_emb = self.flat(que_emb, que_mask, cfg)
+        opt_emb = self.flat(opt_emb, opt_mask, cfg)
+        fusion_feat = torch.cat((que_emb, opt_emb, graph_emb), -1)
         proj_feat = self.classify(fusion_feat)
+        proj_feat = torch.reshape(proj_feat, (cfg.batch_size, 1, cfg.max_opt_count))
+        opt_mask_num = opt_mask_num.unsqueeze(1)
+        proj_feat = proj_feat.masked_fill(opt_mask_num == 1, -1e10)
+        return proj_feat
 
 
 class DiagramNet(nn.Module):

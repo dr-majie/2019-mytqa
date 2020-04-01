@@ -15,7 +15,7 @@ class Config(object):
         self.gat_dropout = 0.0
         self.gat_alpha = 0.2
         self.gat_heads = 8
-        self.gat_max_nodes = 200
+        self.gat_max_nodes = 70
 
         self.multi_hid = 300
         self.multi_heads = 6
@@ -34,6 +34,11 @@ class Config(object):
         self.batch_size = 16
         self.num_workers = 8
         self.max_epochs = 20
+
+        self.mlp_hid = 600
+        self.glimpse = 1
+        self.mlp_dropout = 0.1
+        self.mlp_out = 300
 
         self.pre_path = '/data/kf/majie/wangyaxian/tqa/data/'
         self.suf_path = '/processed_data/one_hot_files/'

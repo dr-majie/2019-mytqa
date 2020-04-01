@@ -32,12 +32,14 @@ class GraphAttentionLayer(nn.Module):
 
         self.leakyrelu = nn.LeakyReLU(self.alpha)
 
-    def forward(self, input, adj):
-        h = torch.mm(input, self.W)
-        N = h.size()[0]
+    def forward(self, input, adj, cfg):
+        h = torch.matmul(input, self.W)
+        N = cfg.gat_max_nodes
 
-        a_input = torch.cat([h.repeat(1, N).view(N * N, -1), h.repeat(N, 1)], dim=1).view(N, -1, 2 * self.out_features)
-        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(2))
+        a_input = torch.cat(
+            [h.repeat(1, 1, 1, N).view(cfg.batch_size, cfg.max_opt_count, N * N, -1), h.repeat(1, 1, N, 1)],
+            dim=1).view(cfg.batch_size, cfg.max_opt_count, N, -1, 2 * self.out_features)
+        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(-1))
 
         zero_vec = -9e15 * torch.ones_like(e)
         attention = torch.where(adj > 0, e, zero_vec)
@@ -74,7 +76,7 @@ class MultiHeadAttentionLayer(nn.Module):
 
         self.scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
 
-    def forward(self, query, key, value, mask=None):
+    def forward(self, query, key, value, cfg, mask=None):
         batch_size = query.shape[0]
 
         # query = [batch size, query len, hid dim]
@@ -89,15 +91,15 @@ class MultiHeadAttentionLayer(nn.Module):
         # K = [batch size, key len, hid dim]
         # V = [batch size, value len, hid dim]
 
-        Q = Q.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
-        K = K.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
-        V = V.view(batch_size, -1, self.n_heads, self.head_dim).permute(0, 2, 1, 3)
+        Q = Q.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
+        K = K.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
+        V = V.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
 
         # Q = [batch size, n heads, query len, head dim]
         # K = [batch size, n heads, key len, head dim]
         # V = [batch size, n heads, value len, head dim]
 
-        energy = torch.matmul(Q, K.permute(0, 1, 3, 2)) / self.scale
+        energy = torch.matmul(Q, K.permute(0, 1, 2, 4, 3)) / self.scale
 
         # energy = [batch size, n heads, query len, key len]
 
@@ -112,11 +114,11 @@ class MultiHeadAttentionLayer(nn.Module):
 
         # x = [batch size, n heads, query len, head dim]
 
-        x = x.permute(0, 2, 1, 3).contiguous()
+        x = x.permute(0, 1, 3, 2, 4).contiguous()
 
         # x = [batch size, query len, n heads, head dim]
 
-        x = x.view(batch_size, -1, self.hid_dim)
+        x = x.view(batch_size, cfg.max_opt_count, -1, self.hid_dim)
 
         # x = [batch size, query len, hid dim]
 
@@ -124,4 +126,78 @@ class MultiHeadAttentionLayer(nn.Module):
 
         # x = [batch size, query len, hid dim]
 
-        return x, attention
+        return x
+
+
+class AttFlat(nn.Module):
+    def __init__(self, cfg):
+        super(AttFlat, self).__init__()
+
+        self.mlp = MLP(
+            in_size=cfg.word_emb,
+            mid_size=cfg.mlp_hid,
+            out_size=cfg.glimpse,
+            dropout_r=cfg.mlp_dropout,
+            use_relu=True
+        )
+
+        self.linear_merge = nn.Linear(
+            cfg.word_emb * cfg.glimpse,
+            cfg.mlp_out
+        )
+
+    def forward(self, x, x_mask, cfg):
+        att = self.mlp(x)
+        att = att.masked_fill(
+            x_mask.unsqueeze(-1) == 1,
+            -1e9
+        )
+        att = F.softmax(att, dim=-1)
+
+        att_list = []
+        for i in range(cfg.glimpse):
+            att_list.append(
+                torch.sum(att[:, :, :, i: i + 1] * x, dim=2)
+            )
+
+        x_atted = torch.cat(att_list, dim=1)
+        x_atted = self.linear_merge(x_atted)
+
+        return x_atted
+
+
+class MLP(nn.Module):
+    def __init__(self, in_size, mid_size, out_size, dropout_r=0., use_relu=True):
+        super(MLP, self).__init__()
+
+        self.fc = FC(in_size, mid_size, dropout_r=dropout_r, use_relu=use_relu)
+        self.linear = nn.Linear(mid_size, out_size)
+
+    def forward(self, x):
+        return self.linear(self.fc(x))
+
+
+class FC(nn.Module):
+    def __init__(self, in_size, out_size, dropout_r=0., use_relu=True):
+        super(FC, self).__init__()
+        self.dropout_r = dropout_r
+        self.use_relu = use_relu
+
+        self.linear = nn.Linear(in_size, out_size)
+
+        if use_relu:
+            self.relu = nn.ReLU(inplace=True)
+
+        if dropout_r > 0:
+            self.dropout = nn.Dropout(dropout_r)
+
+    def forward(self, x):
+        x = self.linear(x)
+
+        if self.use_relu:
+            x = self.relu(x)
+
+        if self.dropout_r > 0:
+            x = self.dropout(x)
+
+        return x

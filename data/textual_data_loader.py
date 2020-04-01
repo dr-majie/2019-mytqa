@@ -13,9 +13,10 @@ class TextualDataset(Data.Dataset):
     def __init__(self, cfg):
         if cfg.mode == 'train':
             self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
-            print('Note: finish loading textual data.' + '\n')
+            print('Note: finish loading textual data (train + val).' + '\n')
         else:
-            self.dataset = load_texutal_data(cfg)
+            self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
+            print('Note: finish loading textual data (test).' + '\n')
 
     def __getitem__(self, idx):
         que_iter = self.que[idx]

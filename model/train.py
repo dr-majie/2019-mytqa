@@ -14,7 +14,7 @@ import torch.utils.data as Data
 from model.config import Config
 from data.textual_data_loader import TextualDataset
 from model.net import TextualNet
-from torch.nn import BCELoss
+from torch.nn import BCEWithLogitsLoss
 from torch.optim import Adam
 
 
@@ -26,7 +26,7 @@ def run_textual_net(cfg):
         net.cuda()
 
     net.train()
-    criterion = BCELoss()
+    criterion = BCEWithLogitsLoss()
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     dataset = TextualDataset(cfg)
