@@ -63,6 +63,7 @@ def run_textual_net(cfg):
             )
 
             loss = criterion(pred, ans_iter)
+            print('loss:', loss)
             loss.backward()
             optimizer.step()
 

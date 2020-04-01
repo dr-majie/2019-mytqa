@@ -2,7 +2,7 @@
 # !/usr/bin/env python
 # _*_coding:utf-8 _*_
 # @Time:2020/3/21 15:27
-# @Author:Diego Antognini
+# @Author:Jie Ma
 # @FileName: layer.py
 # -----------------------------------------------
 
