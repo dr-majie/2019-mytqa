@@ -52,9 +52,9 @@ def test_engine(net, cfg):
             _, label = torch.max(ans_iter, 2)
             correct_num += label.eq(pred_idx).sum()
 
-            correct_num = np.array(correct_num, dtype=float)
+        correct_num = np.array(correct_num.cpu(), dtype=float)
         accuracy = correct_num / ques_sum
-        print('* correct prediction:', correct_num, '. * total questions:', ques_sum,
-              '. * accuracy is {}'.format(accuracy))
+        print('* correct prediction:', correct_num, '  * total questions:', ques_sum,
+              '  * accuracy is {}'.format(accuracy))
     else:
         pass
