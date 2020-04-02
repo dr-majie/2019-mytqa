@@ -14,7 +14,7 @@ import torch.utils.data as Data
 from model.config import Config
 from data.textual_data_loader import TextualDataset
 from model.net import TextualNet
-from torch.nn import BCEWithLogitsLoss
+from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from model.test import test_engine
 
@@ -26,7 +26,7 @@ def run_textual_net(cfg):
         print('Note: use cuda to accelerate training.' + '\n')
         net.cuda()
 
-    criterion = BCEWithLogitsLoss()
+    criterion = CrossEntropyLoss()
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     dataset = TextualDataset(cfg)
@@ -63,7 +63,10 @@ def run_textual_net(cfg):
                 cfg
             )
 
-            loss = criterion(pred, ans_iter)
+            # loss = criterion(pred, ans_iter)
+            _, label = torch.max(ans_iter, -1)
+            label = label.squeeze(-1)
+            loss = criterion(pred, label)
             loss.backward()
             optimizer.step()
         test_engine(net, cfg)
