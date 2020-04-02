@@ -48,8 +48,11 @@ def test_engine(net, cfg):
             )
 
             ques_sum += que_iter.shape[0]
-            _, pred_idx = torch.max(pred, 2)
-            _, label = torch.max(ans_iter, 2)
+            _, pred_idx = torch.max(pred, -1)
+            _, label = torch.max(ans_iter, -1)
+
+            batch_size = label.shape[0]
+            label = torch.reshape(label, (-1, batch_size)).squeeze(0)
             correct_num += label.eq(pred_idx).sum()
 
         correct_num = np.array(correct_num.cpu(), dtype=float)

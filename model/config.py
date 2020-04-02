@@ -29,9 +29,9 @@ class Config(object):
         self.max_opt_len = 25
         self.max_opt_count = 7
 
-        self.lr = 0.005
+        self.lr = 0.001
         self.weight_decay = 5e-4
-        self.batch_size = 16
+        self.batch_size = 4
         self.num_workers = 8
         self.max_epochs = 300
 

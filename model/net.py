@@ -61,8 +61,9 @@ class TextualNet(nn.Module):
 
         fusion_feat = torch.cat((que_emb, opt_emb, graph_emb), -1)
         proj_feat = self.classify(fusion_feat)
-        proj_feat = torch.reshape(proj_feat, (batch_size, 1, cfg.max_opt_count))
-        opt_mask_num = opt_mask_num.unsqueeze(1)
+        # proj_feat = torch.reshape(proj_feat, (batch_size, 1, cfg.max_opt_count))
+        # opt_mask_num = opt_mask_num.unsqueeze(1)
+        proj_feat = proj_feat.squeeze(-1)
         proj_feat = proj_feat.masked_fill(opt_mask_num == 1, -9e15)
         return proj_feat
 
