@@ -38,13 +38,14 @@ class GraphAttentionLayer(nn.Module):
         batch_size = h.shape[0]
         a_input = torch.cat(
             [h.repeat(1, 1, 1, N).view(batch_size, cfg.max_opt_count, N * N, -1), h.repeat(1, 1, N, 1)],
-            dim=1).view(batch_size, cfg.max_opt_count, N, -1, 2 * self.out_features)
+            dim=-1).view(batch_size, cfg.max_opt_count, N, -1, 2 * self.out_features)
         e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(-1))
 
         zero_vec = -9e15 * torch.ones_like(e)
         attention = torch.where(adj > 0, e, zero_vec)
-        attention = F.softmax(attention, dim=1)
+        attention = F.softmax(attention, dim=-1)
         attention = F.dropout(attention, self.dropout, training=self.training)
+
         h_prime = torch.matmul(attention, h)
 
         if self.concat:
@@ -66,17 +67,17 @@ class MultiHeadAttentionLayer(nn.Module):
         self.n_heads = n_heads
         self.head_dim = hid_dim // n_heads
 
-        self.fc_q = nn.Linear(hid_dim, hid_dim)
-        self.fc_k = nn.Linear(hid_dim, hid_dim)
-        self.fc_v = nn.Linear(hid_dim, hid_dim)
+        self.fc_q = nn.Linear(hid_dim, hid_dim, bias=False)
+        self.fc_k = nn.Linear(hid_dim, hid_dim, bias=False)
+        self.fc_v = nn.Linear(hid_dim, hid_dim, bias=False)
 
-        self.fc_o = nn.Linear(hid_dim, hid_dim)
+        self.fc_o = nn.Linear(hid_dim, hid_dim, bias=False)
 
         self.dropout = nn.Dropout(dropout)
 
         self.scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
 
-    def forward(self, query, key, value, cfg, mask=None):
+    def forward(self, query, key, value, cfg, mask=True):
         batch_size = query.shape[0]
 
         # query = [batch size, query len, hid dim]
@@ -103,8 +104,8 @@ class MultiHeadAttentionLayer(nn.Module):
 
         # energy = [batch size, n heads, query len, key len]
 
-        if mask is not None:
-            energy = energy.masked_fill(mask == 0, -1e10)
+        if mask:
+            energy = energy.masked_fill(energy == 0, -9e15)
 
         attention = torch.softmax(energy, dim=-1)
 
@@ -150,9 +151,9 @@ class AttFlat(nn.Module):
         att = self.mlp(x)
         att = att.masked_fill(
             x_mask.unsqueeze(-1) == 1,
-            -1e9
+            -9e15
         )
-        att = F.softmax(att, dim=-1)
+        att = F.softmax(att, dim=2)
 
         att_list = []
         for i in range(cfg.glimpse):
@@ -160,7 +161,7 @@ class AttFlat(nn.Module):
                 torch.sum(att[:, :, :, i: i + 1] * x, dim=2)
             )
 
-        x_atted = torch.cat(att_list, dim=1)
+        x_atted = torch.cat(att_list, dim=2)
         x_atted = self.linear_merge(x_atted)
 
         return x_atted

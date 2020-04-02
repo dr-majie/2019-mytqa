@@ -15,17 +15,17 @@ class Config(object):
         self.gat_dropout = 0.0
         self.gat_alpha = 0.2
         self.gat_heads = 8
-        self.gat_max_nodes = 70
+        self.gat_max_nodes = 60
 
         self.multi_hid = 300
         self.multi_heads = 6
-        self.multi_dropout = 0.0
+        self.multi_dropout = 0.1
 
         self.word_emb = 300
         self.lstm_hid = 300
         self.lstm_layer = 1
 
-        self.max_que_len = 64
+        self.max_que_len = 30
         self.max_opt_len = 25
         self.max_opt_count = 7
 
@@ -33,12 +33,12 @@ class Config(object):
         self.weight_decay = 5e-4
         self.batch_size = 16
         self.num_workers = 8
-        self.max_epochs = 20
+        self.max_epochs = 300
 
-        self.mlp_hid = 600
+        self.mlp_hid = 300
         self.glimpse = 1
         self.mlp_dropout = 0.1
-        self.mlp_out = 300
+        self.mlp_out = 600
 
         self.pre_path = '/data/kf/majie/wangyaxian/tqa/data/'
         self.suf_path = '/processed_data/one_hot_files/'
