@@ -5,7 +5,7 @@ import shutil
 import nltk
 from nltk.tokenize import word_tokenize
 from preprocessing.get_closest_sen import get_closest_sentences
-
+import pickle
 
 class read_json():
     def __init__(self, json_dir, is_test_data, op_dir=None):
@@ -75,7 +75,7 @@ class read_json():
 
                     with open(os.path.join(ins_dir, img_name[:-4] + '.txt'), 'w') as f:
                         json_dict = {}
-                        if img_name in lessons['diagramAnnotations'].keys() and img_name:
+                        if img_name in lessons['diagramAnnotations'].keys():
                             img_info = lessons['diagramAnnotations'][img_name]
                             img_info_list = []
                             for info in img_info:
@@ -149,8 +149,14 @@ class read_json():
                             option_f_handle.write(opt)
                             option_f_handle.close()
                             option = chr(ord(option) + 1)
-
+                        question_type_dict = {"Multiple Choice+True or False": "0", "Multiple Choice+Multiple Choice": "1",
+                                              "Multiple Choice+Matching": "1", "Diagram Multiple Choice": "2"}
                         if q_tag == dq_tag:
+                            question_type = lessons[qs_tag][q_tag][q_id]['questionType']
+                            with open(os.path.join(q_dir, 'question_type.pkl'), 'wb') as f:
+                                question_type_number = question_type_dict[question_type]
+                                pickle.dump(question_type_number, f)
+
                             quest_img_path = os.path.join(self.json_dir, lessons[qs_tag][q_tag][q_id][img_path_tag])
                             shutil.copy2(quest_img_path, q_dir)
 
@@ -192,10 +198,11 @@ class read_json():
                             else:
                                 img_name = img_path.split('/')[-1]
                                 with open(os.path.join(q_dir, 'coordinate.txt'), 'w') as f:
+                                    json_dict = {}
                                     if img_name in lessons['diagramAnnotations'].keys():
                                         img_info = lessons['diagramAnnotations'][img_name]
                                         img_info_list = []
-                                        json_dict = {}
+                                        # json_dict = {}
                                         for info in img_info:
                                             # saving the WordText and all the word coordinate
                                             word_dict = {}
@@ -209,9 +216,9 @@ class read_json():
                                                 pass
                                             detailed_word_info['Center'] = [
                                                 info['rectangle'][0][0] + (
-                                                            info['rectangle'][1][0] - info['rectangle'][0][0]) / 2,
+                                                        info['rectangle'][1][0] - info['rectangle'][0][0]) / 2,
                                                 info['rectangle'][0][1] + (
-                                                            info['rectangle'][1][1] - info['rectangle'][0][1]) / 2]
+                                                        info['rectangle'][1][1] - info['rectangle'][0][1]) / 2]
 
                                             detailed_word_info['Left'] = info['rectangle'][0][0]
                                             detailed_word_info['Top'] = info['rectangle'][0][1]
@@ -242,7 +249,17 @@ class read_json():
 
                                     json_dict[img_name] = img_info_list
                                     json.dump(json_dict, f)
-
+                        elif q_tag == ndq_tag:
+                            # question_type_of_lq = []
+                            question_type = lessons[qs_tag][q_tag][q_id]['questionType']
+                            question_subtype = lessons[qs_tag][q_tag][q_id]['questionSubType']
+                            question_type_last = '{}+{}'.format(question_type, question_subtype)
+                            with open(os.path.join(q_dir, 'question_type.pkl'), 'wb') as f:
+                                question_type_number = question_type_dict[question_type_last]
+                                # question_type_of_lq.append(lesson_id)
+                                # question_type_of_lq.append(q_id)
+                                # question_type_of_lq.append(question_type_number)
+                                pickle.dump(question_type_number, f)
                         correct_answer = lessons[qs_tag][q_tag][q_id]['correctAnswer']['processedText']
                         corr_f_handle = open(os.path.join(q_dir, 'correct_answer.txt'), 'w')
                         corr_f_handle.write(correct_answer + '\n')

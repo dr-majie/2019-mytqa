@@ -1,4 +1,6 @@
 import os
+import shutil
+
 import numpy as np
 from gensim.models import KeyedVectors
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -11,6 +13,7 @@ import torch
 from stanfordcorenlp import StanfordCoreNLP
 import torch.nn.functional as F
 import collections
+import copy
 
 
 class generate_network_ready_files():
@@ -21,7 +24,7 @@ class generate_network_ready_files():
         self.is_test_data = is_test_data
         self.word2vec_path = word2vec_path
 
-        self.raw_diagram_path = os.path.join(processed_data_path, 'graph_files')
+        # self.raw_diagram_path = os.path.join(processed_data_path, 'graph_files')
 
         if not os.path.exists(self.raw_text_path):
             read_json_data = read_json(os.path.dirname(processed_data_path), is_test_data)
@@ -54,11 +57,19 @@ class generate_network_ready_files():
         dirlist.sort()
         return dirlist
 
-    def get_list_of_files(self, file_path, file_extension='.txt'):
+    # def get_list_of_files(self, file_path, file_extension='.txt'):
+    #     filelist = []
+    #     for root, dirs, files in os.walk(file_path):
+    #         for filen in files:
+    #             if filen.endswith(file_extension):
+    #                 filelist.append(filen)
+    #     filelist.sort()
+    #     return filelist
+    def get_list_of_files(self, file_path, file_extension='png'):
         filelist = []
         for root, dirs, files in os.walk(file_path):
             for filen in files:
-                if filen.endswith(file_extension):
+                if not filen.endswith(file_extension):
                     filelist.append(filen)
         filelist.sort()
         return filelist
@@ -155,27 +166,50 @@ class generate_network_ready_files():
             node_of_graph = set()
             relation = set()
             # building graph (que, option)
+            # for depth in range(2):
+            #     for node in anchor_nodes:
+            #         for tree in dependency_trees:
+            #             for edge in tree:
+            #                 if node in edge:
+            #                     relation.add(edge)
+            #                     node_of_graph.add(edge[1])
+            #                     node_of_graph.add(edge[2])
+            #     anchor_nodes = set()
+            #     anchor_nodes.update(node_of_graph)
+            initial_anchor_nodes = copy.deepcopy(anchor_nodes)
             for depth in range(2):
-                for node in anchor_nodes:
+                for node in initial_anchor_nodes:
                     for tree in dependency_trees:
                         for edge in tree:
                             if node in edge:
                                 relation.add(edge)
                                 node_of_graph.add(edge[1])
                                 node_of_graph.add(edge[2])
-                anchor_nodes = set()
-                anchor_nodes.update(node_of_graph)
+                initial_anchor_nodes = set()
+                initial_anchor_nodes.update(node_of_graph)
 
-            size = len(node_of_graph)
-            adjacency_matrix = np.zeros((size, size))
+            # size = len(node_of_graph)
+            # adjacency_matrix = np.zeros((size, size))
             node_dict = collections.OrderedDict()
 
-            for i, node in enumerate(node_of_graph):
-                node_dict[node] = i
+            if not node_of_graph:
+                size = len(anchor_nodes)
+                for node in anchor_nodes:
+                    node_of_graph.add(node)
+                for i, node in enumerate(node_of_graph):
+                    node_dict[node] = i
+                adjacency_matrix = np.ones((size, size))
+            else:
+                size = len(node_of_graph)
+                adjacency_matrix = np.zeros((size, size))
+                # node_dict = collections.OrderedDict()
 
-            for edge in relation:
-                adjacency_matrix[node_dict[edge[1]]][node_dict[edge[2]]] = 1
-                adjacency_matrix[node_dict[edge[2]]][node_dict[edge[1]]] = 1
+                for i, node in enumerate(node_of_graph):
+                    node_dict[node] = i
+
+                for edge in relation:
+                    adjacency_matrix[node_dict[edge[1]]][node_dict[edge[2]]] = 1
+                    adjacency_matrix[node_dict[edge[2]]][node_dict[edge[1]]] = 1
 
             with open(os.path.join(graph_que_ins_path, 'adjacency_matrix_' + option + '.pkl'), 'wb') as f_graph:
                 pickle.dump(adjacency_matrix, f_graph)
@@ -246,33 +280,44 @@ class generate_network_ready_files():
                             is_correct_answer_file = True
                         else:
                             is_correct_answer_file = False
-
-                        with open(os.path.join(l_dir, question_dir, fname), 'r') as f:
-                            if fname == 'closest_sent.txt':
-                                is_closest_para_file = True
-                                try:
-                                    text = f.readlines()[0]
-                                    raw_data_content = ''
-                                    count = 0
-                                    for s in sent_tokenize(text):
-                                        if len(s.split()) > self.num_of_words_in_sent:
-                                            raw_data_content += ' '.join(s.split()[:self.num_of_words_in_sent])
-                                            raw_data_content += '. '
-                                        else:
-                                            raw_data_content += ' '.join(s.split())
-                                            raw_data_content += ' '
-
-                                        count += 1
-                                        if count == self.num_of_sents_in_closest_para:
-                                            break
-                                except:
-                                    raw_data_content = f.readlines()
-                            else:
-                                is_closest_para_file = False
-                                raw_data_content = f.readlines()
-                        if fname == 'coordinate.txt':
+                        if fname == 'question_type.pkl':
+                            old_path = os.path.join(self.raw_text_path, lesson, question_dir, fname)
+                            new_path = os.path.join(op_l_dir, question_dir)
+                            shutil.copy2(old_path, new_path)
+                        elif fname == 'coordinate.txt':
                             pass
                         else:
+                            with open(os.path.join(l_dir, question_dir, fname), 'r') as f:
+                                if fname == 'closest_sent.txt':
+                                    is_closest_para_file = True
+                                    try:
+                                        text = f.readlines()[0]
+                                        raw_data_content = ''
+                                        count = 0
+                                        for s in sent_tokenize(text):
+                                            if len(s.split()) > self.num_of_words_in_sent:
+                                                raw_data_content += ' '.join(s.split()[:self.num_of_words_in_sent])
+                                                raw_data_content += '. '
+                                            else:
+                                                raw_data_content += ' '.join(s.split())
+                                                raw_data_content += ' '
+
+                                            count += 1
+                                            if count == self.num_of_sents_in_closest_para:
+                                                break
+                                    except:
+                                        raw_data_content = f.readlines()
+                                else:
+                                    is_closest_para_file = False
+                                    raw_data_content = f.readlines()
+                        # if fname == 'coordinate.txt':
+                        #     pass
+                        # elif fname == 'question_type.pkl':
+                        #     old_path = os.path.join(self.raw_text_path, lesson, question_dir, fname)
+                        #     new_path = os.path.join(op_l_dir, question_dir)
+                        #     shutil.copy2(old_path, new_path)
+
+                        # else:
                             f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'wb')
                             self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
                                                     is_closest_para_file)
