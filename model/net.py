@@ -50,21 +50,28 @@ class TextualNet(nn.Module):
         opt_emb = torch.reshape(opt_emb, (-1, cfg.max_opt_len, cfg.word_emb))
         opt_emb, _ = self.lstm(opt_emb)
         opt_emb = torch.reshape(opt_emb, (batch_size, cfg.max_opt_count, cfg.max_opt_len, cfg.word_emb))
+        # opt_emb = opt_emb.masked_fill(opt_mask.unsqueeze(-1) == 1, 0.)
 
         gat_node_mask = make_mask(node_emb)
         gat_node_emb = self.text_gat(node_emb, adjacency_matrices, cfg)
         gat_node_emb = self.att(gat_node_emb, que_emb, que_emb, cfg)
+        # gat_node_emb += self.att(gat_node_emb, que_emb, que_emb, cfg)
+        # opt_emb += self.att(opt_emb, gat_node_emb, gat_node_emb, cfg)
 
+        opt_mask_num = opt_mask_num.unsqueeze(-1)
         graph_emb = self.flat(gat_node_emb, gat_node_mask, cfg)
+        graph_emb = graph_emb.masked_fill(opt_mask_num == 1, 0.)
         que_emb = self.flat(que_emb, que_mask, cfg)
+        que_emb = que_emb.masked_fill(opt_mask_num == 1, 0.)
         opt_emb = self.flat(opt_emb, opt_mask, cfg)
+        opt_emb = opt_emb.masked_fill(opt_mask_num == 1, 0.)
 
         fusion_feat = torch.cat((que_emb, opt_emb, graph_emb), -1)
         proj_feat = self.classify(fusion_feat)
         # proj_feat = torch.reshape(proj_feat, (batch_size, 1, cfg.max_opt_count))
         # opt_mask_num = opt_mask_num.unsqueeze(1)
         proj_feat = proj_feat.squeeze(-1)
-        proj_feat = proj_feat.masked_fill(opt_mask_num == 1, -9e15)
+        proj_feat = proj_feat.masked_fill(opt_mask_num.squeeze(-1) == 1, -9e15)
         return proj_feat
 
 
