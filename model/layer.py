@@ -92,9 +92,9 @@ class MultiHeadAttentionLayer(nn.Module):
         # K = [batch size, key len, hid dim]
         # V = [batch size, value len, hid dim]
 
-        Q = Q.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
-        K = K.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
-        V = V.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 1, 3, 2, 4)
+        Q = Q.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
+        K = K.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
+        V = V.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
 
         # Q = [batch size, n heads, query len, head dim]
         # K = [batch size, n heads, key len, head dim]
@@ -113,9 +113,9 @@ class MultiHeadAttentionLayer(nn.Module):
 
         x = torch.matmul(self.dropout(attention), V)
 
-        # x = [batch size, n heads, query len, head dim]
+        # x = [batch size, n heads, query len, head dim] (4, 6, 7, 60, 50)
 
-        x = x.permute(0, 1, 3, 2, 4).contiguous()
+        x = x.permute(0, 2, 3, 1, 4).contiguous()
 
         # x = [batch size, query len, n heads, head dim]
 

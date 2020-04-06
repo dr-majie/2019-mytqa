@@ -39,9 +39,19 @@ def load_texutal_data(cfg):
     ans_list = []
     closest_sent_list = []
     if cfg.mode == 'train':
-        slice_paths = ['train', 'val']
+        if cfg.splits == 'train+val':
+            slice_paths = ['train', 'val']
+            print('Note: begin to load **', slice_paths, '**.')
+        else:
+            slice_paths = ['train']
+            print('Note: begin to load **', slice_paths, '**.')
     else:
-        slice_paths = ['test']
+        if cfg.splits == 'train+val':
+            slice_paths = ['test']
+            print('Note: begin to load **', slice_paths, '**.')
+        else:
+            slice_paths = ['val']
+            print('Note: begin to load **', slice_paths, '**.')
 
     for slice_path in slice_paths:
         path = cfg.pre_path + slice_path + cfg.suf_path
