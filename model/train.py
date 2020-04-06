@@ -21,12 +21,9 @@ from model.test import test_engine
 
 def run_textual_net(cfg):
     net = TextualNet(cfg)
+    net.cuda()
 
-    if cfg.cuda:
-        print('Note: use cuda to accelerate training.' + '\n')
-        net.cuda()
-
-    criterion = CrossEntropyLoss()
+    criterion = CrossEntropyLoss(reduction='sum')
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
 
     dataset = TextualDataset(cfg)
@@ -39,7 +36,6 @@ def run_textual_net(cfg):
         drop_last=True
     )
     for epoch in range(cfg.max_epochs):
-        net.train()
         for step, (
                 que_iter,
                 opt_iter,
@@ -69,8 +65,12 @@ def run_textual_net(cfg):
             loss = criterion(pred, label)
             loss.backward()
             optimizer.step()
+        print('epoch:', epoch, 'training loss {}'.format(loss))
         test_engine(net, cfg)
-
+        cfg.mode = 'test'
+        test_engine(net, cfg)
+        cfg.mode = 'train'
+        net.train()
 
 def run_diagram_net(cfg):
     pass
@@ -79,6 +79,7 @@ def run_diagram_net(cfg):
 if __name__ == '__main__':
     parse = argparse.ArgumentParser()
     parse.add_argument('--mode', dest='mode', choices=['train', 'test'], type=str, required=True)
+    parse.add_argument('--splits', dest='splits', choices=['train+val', 'train'], type=str, required=True)
     parse.add_argument('--no-cuda', action='store_true', default=False, help='Disable cuda training')
     parse.add_argument('--seed', type=int, default=72, help='Random seed.')
     parse.add_argument('--model', dest='model', choices=['tn', 'dn'],

@@ -12,7 +12,6 @@ import torch.utils.data as Data
 
 
 def test_engine(net, cfg):
-    cfg.mode = 'test'
     net.eval()
 
     if cfg.model == 'tn':
@@ -50,7 +49,6 @@ def test_engine(net, cfg):
             ques_sum += que_iter.shape[0]
             _, pred_idx = torch.max(pred, -1)
             _, label = torch.max(ans_iter, -1)
-
             batch_size = label.shape[0]
             label = torch.reshape(label, (-1, batch_size)).squeeze(0)
             correct_num += label.eq(pred_idx).sum()
@@ -58,6 +56,6 @@ def test_engine(net, cfg):
         correct_num = np.array(correct_num.cpu(), dtype=float)
         accuracy = correct_num / ques_sum
         print('* correct prediction:', correct_num, '  * total questions:', ques_sum,
-              '  * accuracy is {}'.format(accuracy))
+              '  * accuracy is {}'.format(accuracy), '\n')
     else:
         pass
