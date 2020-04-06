@@ -94,8 +94,8 @@ def get_anchor_nodes_of_all(que_path, anchor_nodes_of_que):
     return anchor_nodes_all
 
 
-def build_diagram_graph(que_path, diagram_type):
-    scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
+def build_diagram_graph(que_path, diagram_type,scp):
+    # scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
     if diagram_type == 'DQ':
         diagram_info, nodes_of_diagram = get_info_of_diagram_DQ(que_path)
         dependency_trees = get_dependency_parsing(os.path.join(que_path, 'closest_sent.txt'), scp)
@@ -114,7 +114,7 @@ def build_diagram_graph(que_path, diagram_type):
             words = word_tokenize(sent)
             tree = convert_num2words(tree, words)
             dependency_trees.append(tree)
-    scp.close()
+    # scp.close()
     img_name = [name for name in os.listdir(que_path) if name.endswith(".png")]
     img_url = os.path.join(que_path, img_name[0])
     image = Image.open(img_url)

@@ -246,12 +246,12 @@ class generate_network_ready_files():
         with open(os.path.join(graph_que_ins_path, 'adjacency_matrix_diagram' + '.pkl'), 'wb') as f_graph:
             pickle.dump(adjacency_matrix, f_graph)
 
-    def generate_word2vec_for_all(self):
+    def generate_word2vec_for_all(self,scp):
 
         print(20 * '*')
         print('GENERATING NETWORK READY FILES.')
         model = KeyedVectors.load_word2vec_format(self.word2vec_path, binary=True)
-        scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
+        # scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
 
         max_nodes_of_lessons = []
         min_nodes_of_lessons = []
@@ -326,39 +326,39 @@ class generate_network_ready_files():
                 que_ins_path = os.path.join(l_dir, question_dir)
                 graph_que_ins_path = os.path.join(op_l_dir, question_dir)
                 if question_dir.startswith('DQ'):
-                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DQ')
+                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DQ', scp)
                     self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
                     self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
                     node_count_dq.append(len(node_dict))
                 elif question_dir.startswith('DD'):
-                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DD')
+                    node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DD', scp)
                     self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
                     node_count_dd.append(len(node_dict))
                 else:
                     self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
 
-            if len(node_count_dq) != 0 or len(node_count_dd) != 0:
-                if len(node_count_dq) != 0:
-                    print("count of dq nodes:", node_count_dq)
-                    print("count of DQ:", len(node_count_dq))
-                    print("max count of dq nodes:", max(node_count_dq))
-                    max_nodes_of_lessons.append(max(node_count_dq))
-                    print("min count of dq nodes:", min(node_count_dq))
-                    min_nodes_of_lessons.append(min(node_count_dq))
-                if len(node_count_dd) != 0:
-                    print("count of dd nodes:", node_count_dd)
-                    print("count of DD:", len(node_count_dd))
-                    print("max count of dd nodes:", max(node_count_dd))
-                    max_nodes_of_lessons.append(max(node_count_dd))
-                    print("min count of dd nodes:", min(node_count_dd))
-                    min_nodes_of_lessons.append(min(node_count_dd))
-            else:
-                print("the lesson only has NDQ")
+            # if len(node_count_dq) != 0 or len(node_count_dd) != 0:
+            #     if len(node_count_dq) != 0:
+            #         print("count of dq nodes:", node_count_dq)
+            #         print("count of DQ:", len(node_count_dq))
+            #         print("max count of dq nodes:", max(node_count_dq))
+            #         max_nodes_of_lessons.append(max(node_count_dq))
+            #         print("min count of dq nodes:", min(node_count_dq))
+            #         min_nodes_of_lessons.append(min(node_count_dq))
+            #     if len(node_count_dd) != 0:
+            #         print("count of dd nodes:", node_count_dd)
+            #         print("count of DD:", len(node_count_dd))
+            #         print("max count of dd nodes:", max(node_count_dd))
+            #         max_nodes_of_lessons.append(max(node_count_dd))
+            #         print("min count of dd nodes:", min(node_count_dd))
+            #         min_nodes_of_lessons.append(min(node_count_dd))
+            # else:
+            #     print("the lesson only has NDQ")
 
             print(20 * '***')
-        scp.close()
-        print("max count of nodes in all lessons:", max(max_nodes_of_lessons))
-        print("min count of nodes in all lessons:", min(min_nodes_of_lessons))
+        # scp.close()
+        # print("max count of nodes in all lessons:", max(max_nodes_of_lessons))
+        # print("min count of nodes in all lessons:", min(min_nodes_of_lessons))
 
         print('saving final unknown word2vec dictionary to file')
         f = open(os.path.join(self.common_files_path, self.unknown_words_vec_dict_file), 'wb')

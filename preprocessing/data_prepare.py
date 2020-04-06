@@ -6,7 +6,7 @@ import re
 
 
 class prepare_data():
-    def __init__(self, cfg, processed_data_path, is_test_data):
+    def __init__(self, cfg, processed_data_path, is_test_data, scp):
         self.is_test_data = is_test_data
 
         if not os.path.exists(processed_data_path):
@@ -16,7 +16,7 @@ class prepare_data():
                                                                  cfg.max_opt_length, cfg.max_opt_count,
                                                                  cfg.max_sent_para, cfg.max_words_sent,
                                                                  op_path=None)
-            g_network_ready_files.generate_word2vec_for_all()
+            g_network_ready_files.generate_word2vec_for_all(scp)
 
         self.word_vec_size = cfg.word_vec_size
         self.num_of_words_in_opt = cfg.max_opt_length
