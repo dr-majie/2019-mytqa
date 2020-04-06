@@ -160,6 +160,16 @@ def build_diagram_graph(que_path, diagram_type):
                         edge_of_diagram = (i, j)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_dependency += 1
+                    elif (edge[0] in node_s and edge[1] in node_t) or (edge[1] in node_s and edge[0] in node_t):
+                        flag = 1
+                        node_of_diagram_graph.add(node_s)
+                        node_of_diagram_graph.add(node_t)
+                        edge_of_diagram = (i, j)
+                        relation.add(edge_of_diagram)
+                        count_of_relations_in_dependency += 1
+                    else:
+                        pass
+
                 if flag == 0:
                     xi_axis = diagram_info[i]['Coordinate']['Center'][0]
                     yi_axis = diagram_info[i]['Coordinate']['Center'][1]
