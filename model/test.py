@@ -9,11 +9,12 @@ import torch
 import numpy as np
 from data.textual_data_loader import TextualDataset
 import torch.utils.data as Data
+from torch.nn import CrossEntropyLoss
 
 
 def test_engine(net, cfg):
     net.eval()
-
+    cfg.mode = 'test'
     if cfg.model == 'tn':
         dataset = TextualDataset(cfg)
         print('Note: begin to test the model')
@@ -23,8 +24,10 @@ def test_engine(net, cfg):
             num_workers=cfg.num_workers,
             pin_memory=True,
         )
+        criterion = CrossEntropyLoss(reduction='sum')
         ques_sum = 0
         correct_num = 0
+        loss_sum = 0
         for step, (
                 que_iter,
                 opt_iter,
@@ -49,13 +52,19 @@ def test_engine(net, cfg):
             ques_sum += que_iter.shape[0]
             _, pred_idx = torch.max(pred, -1)
             _, label = torch.max(ans_iter, -1)
+
+            val_label = label
+            val_label = val_label.squeeze(-1)
+            loss = criterion(pred, val_label)
+            loss_sum += loss
+
             batch_size = label.shape[0]
             label = torch.reshape(label, (-1, batch_size)).squeeze(0)
             correct_num += label.eq(pred_idx).sum()
 
         correct_num = np.array(correct_num.cpu(), dtype=float)
         accuracy = correct_num / ques_sum
-        print('* correct prediction:', correct_num, '  * total questions:', ques_sum,
+        print('val loss {}'.format(loss_sum), '* correct prediction:', correct_num, '  * total questions:', ques_sum,
               '  * accuracy is {}'.format(accuracy), '\n')
     else:
         pass

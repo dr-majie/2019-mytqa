@@ -17,6 +17,7 @@ from model.net import TextualNet
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
 from model.test import test_engine
+from utils.util import print_obj
 
 
 def run_textual_net(cfg):
@@ -35,7 +36,10 @@ def run_textual_net(cfg):
         pin_memory=True,
         drop_last=True
     )
+
     for epoch in range(cfg.max_epochs):
+        loss_sum = 0
+        net.train()
         for step, (
                 que_iter,
                 opt_iter,
@@ -50,7 +54,7 @@ def run_textual_net(cfg):
             node_emb_iter = node_emb_iter.cuda()
 
             optimizer.zero_grad()
-            # que_emb, opt_emb, node_emb, adjacency_matrices, cfg
+            # que_emb, opt_emb, adjacency_matrices, node_emb, cfg
             pred = net(
                 que_iter,
                 opt_iter,
@@ -63,14 +67,11 @@ def run_textual_net(cfg):
             _, label = torch.max(ans_iter, -1)
             label = label.squeeze(-1)
             loss = criterion(pred, label)
+            loss_sum += loss
             loss.backward()
             optimizer.step()
-        print('epoch:', epoch, 'training loss {}'.format(loss))
+        print('epoch:', epoch, 'training loss {}'.format(loss_sum))
         test_engine(net, cfg)
-        cfg.mode = 'test'
-        test_engine(net, cfg)
-        cfg.mode = 'train'
-        net.train()
 
 def run_diagram_net(cfg):
     pass
@@ -97,6 +98,7 @@ if __name__ == '__main__':
     cfg = Config()
     args_dict = cfg.parse_to_dict(args)
     cfg.add_attr(args_dict)
+    print_obj(cfg)
 
     if cfg.model == 'tn':
         run_textual_net(cfg)

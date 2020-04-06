@@ -165,3 +165,8 @@ def make_mask(feature):
 
 def make_mask_opt_num(feature):
     return torch.sum((torch.sum(torch.abs(feature), dim=-1)), dim=-1) == 0
+
+
+def print_obj(obj):
+    for item in obj.__dict__.items():
+        print(item)

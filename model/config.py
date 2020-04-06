@@ -12,14 +12,14 @@ class Config(object):
     def __init__(self):
         self.gat_hid = 300
         self.gat_node_emb = 300
-        self.gat_dropout = 0.0
+        self.gat_dropout = 0.5
         self.gat_alpha = 0.2
         self.gat_heads = 8
-        self.gat_max_nodes = 60
+        self.gat_max_nodes = 80
 
         self.multi_hid = 300
         self.multi_heads = 6
-        self.multi_dropout = 0.1
+        self.multi_dropout = 0.5
 
         self.word_emb = 300
         self.lstm_hid = 300
@@ -31,7 +31,7 @@ class Config(object):
 
         self.lr = 0.001
         self.weight_decay = 5e-4
-        self.batch_size = 4
+        self.batch_size = 8
         self.num_workers = 8
         self.max_epochs = 300
 
