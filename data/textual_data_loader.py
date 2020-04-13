@@ -6,26 +6,27 @@
 # @FileName: textual_data_loader.py
 # -----------------------------------------------
 import torch.utils.data as Data
-from utils.util import load_texutal_data
+from utils.util import load_texutal_data_beta
 
 
 class TextualDataset(Data.Dataset):
     def __init__(self, cfg):
-        if cfg.mode == 'train':
-            self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
-        else:
-            self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
+        # self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
+        self.que, self.opt, self.ans, self.closest_sent = load_texutal_data_beta(cfg)
+        self.data_size = self.que.__len__()
+        print('data_size: {}'.format(self.data_size))
 
     def __getitem__(self, idx):
         que_iter = self.que[idx]
         opt_iter = self.opt[idx]
         ans_iter = self.ans[idx]
-        adj_matrices_iter = self.adj_matrices[idx]
-        node_emb_iter = self.node_emb[idx]
-
-        return que_iter, opt_iter, ans_iter, adj_matrices_iter, node_emb_iter
+        # adj_matrices_iter = self.adj_matrices[idx]
+        # node_emb_iter = self.node_emb[idx]
+        cs_iter = self.closest_sent[idx]
+        # return que_iter, opt_iter, ans_iter, adj_matrices_iter, node_emb_iter
+        return que_iter, opt_iter, ans_iter, cs_iter
 
     def __len__(self):
-        assert len(self.que) == len(self.opt) == len(self.ans) == len(self.adj_matrices) == len(
-            self.node_emb), 'data size of each iter is not equal.'
+        assert len(self.que) == len(self.opt) == len(self.ans) == len(
+            self.closest_sent), 'data size of each iter is not equal.'
         return len(self.que)

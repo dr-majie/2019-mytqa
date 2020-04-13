@@ -10,141 +10,169 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import math
+
+np.set_printoptions(threshold=1e9)
 
 
-class GraphAttentionLayer(nn.Module):
-    """
-    Simple GAT layer, similar to https://arxiv.org/abs/1710.10903
-    """
+# ------------------------------
+# ---- Multi-Head Attention ----
+# ------------------------------
 
-    def __init__(self, in_features, out_features, dropout, alpha, concat=True):
-        super(GraphAttentionLayer, self).__init__()
-        self.dropout = dropout
-        self.in_features = in_features
-        self.out_features = out_features
-        self.alpha = alpha
-        self.concat = concat
+class MHAtt(nn.Module):
+    def __init__(self, cfg):
+        super(MHAtt, self).__init__()
+        self.cfg = cfg
 
-        self.W = nn.Parameter(torch.zeros(size=(in_features, out_features)))
-        nn.init.xavier_uniform_(self.W.data, gain=1.414)
-        self.a = nn.Parameter(torch.zeros(size=(2 * out_features, 1)))
-        nn.init.xavier_uniform_(self.a.data, gain=1.414)
+        self.linear_v = nn.Linear(cfg.multi_hidden, cfg.multi_hidden)
+        self.linear_k = nn.Linear(cfg.multi_hidden, cfg.multi_hidden)
+        self.linear_q = nn.Linear(cfg.multi_hidden, cfg.multi_hidden)
+        self.linear_merge = nn.Linear(cfg.multi_hidden, cfg.multi_hidden)
 
-        self.leakyrelu = nn.LeakyReLU(self.alpha)
+        self.dropout = nn.Dropout(cfg.multi_drop_out)
 
-    def forward(self, input, adj, cfg):
-        h = torch.matmul(input, self.W)
-        N = cfg.gat_max_nodes
-        batch_size = h.shape[0]
-        a_input = torch.cat(
-            [h.repeat(1, 1, 1, N).view(batch_size, cfg.max_opt_count, N * N, -1), h.repeat(1, 1, N, 1)],
-            dim=-1).view(batch_size, cfg.max_opt_count, N, -1, 2 * self.out_features)
-        e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(-1))
+    def forward(self, v, k, q, mask):
+        n_batches = q.size(0)
 
-        zero_vec = -9e15 * torch.ones_like(e)
-        attention = torch.where(adj > 0, e, zero_vec)
-        attention = F.softmax(attention, dim=-1)
-        attention = F.dropout(attention, self.dropout, training=self.training)
+        v = self.linear_v(v).view(
+            n_batches,
+            -1,
+            self.cfg.multi_heads,
+            int(self.cfg.multi_hidden / self.cfg.multi_heads)
+        ).transpose(1, 2)
 
-        h_prime = torch.matmul(attention, h)
+        k = self.linear_k(k).view(
+            n_batches,
+            -1,
+            self.cfg.multi_heads,
+            int(self.cfg.multi_hidden / self.cfg.multi_heads)
+        ).transpose(1, 2)
 
-        if self.concat:
-            return F.elu(h_prime)
-        else:
-            return h_prime
+        q = self.linear_q(q).view(
+            n_batches,
+            -1,
+            self.cfg.multi_heads,
+            int(self.cfg.multi_hidden / self.cfg.multi_heads)
+        ).transpose(1, 2)
 
-    def __repr__(self):
-        return self.__class__.__name__ + ' (' + str(self.in_features) + ' -> ' + str(self.out_features) + ')'
+        atted = self.att(v, k, q, mask)
+        atted = atted.transpose(1, 2).contiguous().view(
+            n_batches,
+            -1,
+            self.cfg.multi_hidden
+        )
+
+        atted = self.linear_merge(atted)
+
+        return atted
+
+    def att(self, value, key, query, mask):
+        d_k = query.size(-1)
+
+        scores = torch.matmul(
+            query, key.transpose(-2, -1)
+        ) / math.sqrt(d_k)
+
+        if mask is not None:
+            scores = scores.masked_fill(mask, -1e9)
+            # print(scores.detach().cpu().numpy()[0][0])
+        att_map = F.softmax(scores, dim=-1)
+        # print(att_map.detach().cpu().numpy()[0][0])
+        att_map = self.dropout(att_map)
+
+        return torch.matmul(att_map, value)
 
 
-class MultiHeadAttentionLayer(nn.Module):
-    def __init__(self, hid_dim, n_heads, dropout, device):
-        super().__init__()
+# ---------------------------
+# ---- Feed Forward Nets ----
+# ---------------------------
 
-        assert hid_dim % n_heads == 0
+class FFN(nn.Module):
+    def __init__(self, cfg):
+        super(FFN, self).__init__()
 
-        self.hid_dim = hid_dim
-        self.n_heads = n_heads
-        self.head_dim = hid_dim // n_heads
+        self.mlp = MLP(
+            in_size=cfg.multi_hidden,
+            mid_size=cfg.mlp_hid,
+            out_size=cfg.multi_hidden,
+            dropout_r=cfg.multi_drop_out,
+            use_relu=True
+        )
 
-        self.fc_q = nn.Linear(hid_dim, hid_dim, bias=False)
-        self.fc_k = nn.Linear(hid_dim, hid_dim, bias=False)
-        self.fc_v = nn.Linear(hid_dim, hid_dim, bias=False)
+    def forward(self, x):
+        return self.mlp(x)
 
-        self.fc_o = nn.Linear(hid_dim, hid_dim, bias=False)
 
-        self.dropout = nn.Dropout(dropout)
+# ------------------------
+# ---- Self Attention ----
+# ------------------------
 
-        self.scale = torch.sqrt(torch.FloatTensor([self.head_dim])).to(device)
+class SA(nn.Module):
+    def __init__(self, cfg):
+        super(SA, self).__init__()
 
-    def forward(self, query, key, value, cfg, mask=True):
-        batch_size = query.shape[0]
+        self.mhatt = MHAtt(cfg)
+        self.ffn = FFN(cfg)
 
-        # query = [batch size, query len, hid dim]
-        # key = [batch size, key len, hid dim]
-        # value = [batch size, value len, hid dim]
+        self.dropout1 = nn.Dropout(cfg.multi_drop_out)
+        self.norm1 = LayerNorm(cfg.multi_hidden)
 
-        Q = self.fc_q(query)
-        K = self.fc_k(key)
-        V = self.fc_v(value)
+        self.dropout2 = nn.Dropout(cfg.multi_drop_out)
+        self.norm2 = LayerNorm(cfg.multi_hidden)
 
-        # Q = [batch size, query len, hid dim]
-        # K = [batch size, key len, hid dim]
-        # V = [batch size, value len, hid dim]
+    def forward(self, y, y_mask):
+        y = self.norm1(y + self.dropout1(
+            self.mhatt(y, y, y, y_mask)
+        ))
 
-        Q = Q.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
-        K = K.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
-        V = V.view(batch_size, cfg.max_opt_count, -1, self.n_heads, self.head_dim).permute(0, 3, 1, 2, 4)
+        # y = self.norm2(y + self.dropout2(
+        #     self.ffn(y)
+        # ))
 
-        # Q = [batch size, n heads, query len, head dim]
-        # K = [batch size, n heads, key len, head dim]
-        # V = [batch size, n heads, value len, head dim]
+        return y
 
-        energy = torch.matmul(Q, K.permute(0, 1, 2, 4, 3)) / self.scale
 
-        # energy = [batch size, n heads, query len, key len]
+class LayerNorm(nn.Module):
+    def __init__(self, size, eps=1e-6):
+        super(LayerNorm, self).__init__()
+        self.eps = eps
 
-        if mask:
-            energy = energy.masked_fill(energy == 0, -9e15)
+        self.a_2 = nn.Parameter(torch.ones(size))
+        self.b_2 = nn.Parameter(torch.zeros(size))
 
-        attention = torch.softmax(energy, dim=-1)
+    def forward(self, x):
+        mean = x.mean(-1, keepdim=True)
+        std = x.std(-1, keepdim=True)
 
-        # attention = [batch size, n heads, query len, key len]
+        return self.a_2 * (x - mean) / (std + self.eps) + self.b_2
 
-        x = torch.matmul(self.dropout(attention), V)
 
-        # x = [batch size, n heads, query len, head dim] (4, 6, 7, 60, 50)
-
-        x = x.permute(0, 2, 3, 1, 4).contiguous()
-
-        # x = [batch size, query len, n heads, head dim]
-
-        x = x.view(batch_size, cfg.max_opt_count, -1, self.hid_dim)
-
-        # x = [batch size, query len, hid dim]
-
-        x = self.fc_o(x)
-
-        # x = [batch size, query len, hid dim]
-
-        return x
-
+# ------------------------------
+# ---- Flatten the sequence ----
+# ------------------------------
 
 class AttFlat(nn.Module):
     def __init__(self, cfg):
         super(AttFlat, self).__init__()
 
         self.mlp = MLP(
-            in_size=cfg.word_emb,
+            in_size=cfg.mlp_in,
             mid_size=cfg.mlp_hid,
             out_size=cfg.glimpse,
             dropout_r=cfg.mlp_dropout,
             use_relu=True
         )
+        # self.mlp = MLP_new(
+        #     cfg.word_emb,
+        #     cfg.glimpse,
+        #     dropout_r=cfg.mlp_dropout,
+        #     use_relu=True
+        # )
 
         self.linear_merge = nn.Linear(
-            cfg.word_emb * cfg.glimpse,
-            cfg.mlp_out
+            cfg.mlp_in * cfg.glimpse,
+            cfg.mlp_out,
+            bias=False
         )
 
     def forward(self, x, x_mask, cfg):
@@ -201,4 +229,17 @@ class FC(nn.Module):
         if self.dropout_r > 0:
             x = self.dropout(x)
 
+        return x
+
+
+class MultiSA(nn.Module):
+    def __init__(self, cfg):
+        super(MultiSA, self).__init__()
+
+        self.enc_list = nn.ModuleList([SA(cfg) for _ in range(cfg.sa_layer)])
+
+    def forward(self, x, x_mask):
+        # Get encoder last hidden vector
+        for enc in self.enc_list:
+            x = enc(x, x_mask)
         return x

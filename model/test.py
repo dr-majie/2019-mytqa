@@ -7,16 +7,22 @@
 # -----------------------------------------------
 import torch
 import numpy as np
-from data.textual_data_loader import TextualDataset
 import torch.utils.data as Data
 from torch.nn import CrossEntropyLoss
+from model.net import TextualNetBeta
 
 
-def test_engine(net, cfg):
+def test_engine(state_dict, cfg, dataset):
+    net = TextualNetBeta(cfg)
     net.eval()
-    cfg.mode = 'test'
+    net.cuda()
+    if state_dict is None:
+        print('state dict is none')
+    else:
+        net.load_state_dict(state_dict)
+    # print(net.state_dict()['classify.weight'])
+    criterion = CrossEntropyLoss(reduction='sum')
     if cfg.model == 'tn':
-        dataset = TextualDataset(cfg)
         print('Note: begin to test the model')
         dataloader = Data.DataLoader(
             dataset=dataset,
@@ -24,47 +30,42 @@ def test_engine(net, cfg):
             num_workers=cfg.num_workers,
             pin_memory=True,
         )
-        criterion = CrossEntropyLoss(reduction='sum')
         ques_sum = 0
-        correct_num = 0
+        correct_sum = 0
         loss_sum = 0
         for step, (
                 que_iter,
                 opt_iter,
                 ans_iter,
-                adj_matrices_iter,
-                node_emb_iter
+                cs_iter
         ) in enumerate(dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
             ans_iter = ans_iter.cuda()
-            adj_matrices_iter = adj_matrices_iter.cuda()
-            node_emb_iter = node_emb_iter.cuda()
+            cs_iter = cs_iter.cuda()
 
-            pred = net(
-                que_iter,
-                opt_iter,
-                adj_matrices_iter,
-                node_emb_iter,
-                cfg
-            )
+            with torch.no_grad():
+                pred = net(
+                    que_iter,
+                    opt_iter,
+                    cs_iter,
+                    cfg
+                )
 
-            ques_sum += que_iter.shape[0]
-            _, pred_idx = torch.max(pred, -1)
-            _, label = torch.max(ans_iter, -1)
+                ques_sum += que_iter.shape[0]
+                _, pred_idx = torch.max(pred, -1)
+                _, label_ix = torch.max(ans_iter, -1)
 
-            val_label = label
-            val_label = val_label.squeeze(-1)
-            loss = criterion(pred, val_label)
-            loss_sum += loss
+                label_ix = label_ix.squeeze(-1)
+                loss = criterion(pred, label_ix)
+                loss_sum += loss
+                correct_sum += label_ix.eq(pred_idx).cpu().sum()
 
-            batch_size = label.shape[0]
-            label = torch.reshape(label, (-1, batch_size)).squeeze(0)
-            correct_num += label.eq(pred_idx).sum()
+        correct_sum = np.array(correct_sum, dtype='float32')
+        accuracy = correct_sum / float(ques_sum)
+        # print(net.state_dict()['classify.weight'])
 
-        correct_num = np.array(correct_num.cpu(), dtype=float)
-        accuracy = correct_num / ques_sum
-        print('val loss {}'.format(loss_sum), '* correct prediction:', correct_num, '  * total questions:', ques_sum,
+        print('val loss {}'.format(loss_sum), '* correct prediction:', correct_sum, '  * total questions:', ques_sum,
               '  * accuracy is {}'.format(accuracy), '\n')
     else:
         pass

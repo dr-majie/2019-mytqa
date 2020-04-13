@@ -11,67 +11,80 @@ import torch
 import random
 import numpy as np
 import torch.utils.data as Data
-from model.config import Config
+from model.config import ConfigBeta
 from data.textual_data_loader import TextualDataset
-from model.net import TextualNet
+from model.net import TextualNetBeta
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam
+from torch.optim import Adam, lr_scheduler
 from model.test import test_engine
 from utils.util import print_obj
 
 
 def run_textual_net(cfg):
-    net = TextualNet(cfg)
+    net = TextualNetBeta(cfg)
     net.cuda()
-
+    net.train()
     criterion = CrossEntropyLoss(reduction='sum')
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
-
-    dataset = TextualDataset(cfg)
-    dataloader = Data.DataLoader(
-        dataset=dataset,
+    scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
+    train_dataset = TextualDataset(cfg)
+    train_dataloader = Data.DataLoader(
+        dataset=train_dataset,
         batch_size=cfg.batch_size,
         shuffle=True,
         num_workers=cfg.num_workers,
         pin_memory=True,
         drop_last=True
     )
+    cfg.mode = 'test'
+    val_dataset = TextualDataset(cfg)
 
     for epoch in range(cfg.max_epochs):
         loss_sum = 0
-        net.train()
+        ques_sum = 0
+        correct_sum = 0
         for step, (
                 que_iter,
                 opt_iter,
                 ans_iter,
-                adj_matrices_iter,
-                node_emb_iter
-        ) in enumerate(dataloader):
+                cs_iter
+        ) in enumerate(train_dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
             ans_iter = ans_iter.cuda()
-            adj_matrices_iter = adj_matrices_iter.cuda()
-            node_emb_iter = node_emb_iter.cuda()
+            cs_iter = cs_iter.cuda()
 
             optimizer.zero_grad()
             # que_emb, opt_emb, adjacency_matrices, node_emb, cfg
             pred = net(
                 que_iter,
                 opt_iter,
-                adj_matrices_iter,
-                node_emb_iter,
+                cs_iter,
                 cfg
             )
-
             # loss = criterion(pred, ans_iter)
-            _, label = torch.max(ans_iter, -1)
-            label = label.squeeze(-1)
-            loss = criterion(pred, label)
+            _, label_ix = torch.max(ans_iter, -1)
+            _, pred_ix = torch.max(pred, -1)
+
+            label_ix = label_ix.squeeze(-1)
+            loss = criterion(pred, label_ix)
             loss_sum += loss
+
             loss.backward()
+            a = [x.grad for x in optimizer.param_groups[0]['params']]
             optimizer.step()
-        print('epoch:', epoch, 'training loss {}'.format(loss_sum))
-        test_engine(net, cfg)
+
+            correct_sum += label_ix.eq(pred_ix).cpu().sum()
+            ques_sum += que_iter.shape[0]
+        correct_sum = np.array(correct_sum, dtype='float32')
+        accuracy = correct_sum / float(ques_sum)
+        print('epoch:', epoch, 'training loss {}'.format(loss_sum), 'correct sum:', correct_sum, 'total questions:',
+              ques_sum, 'accuracy: {}'.format(accuracy))
+        # print(net.state_dict()['classify.weight'])
+        test_engine(net.state_dict(), cfg, val_dataset)
+        scheduler.step()
+
+
 
 def run_diagram_net(cfg):
     pass
@@ -95,7 +108,7 @@ if __name__ == '__main__':
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    cfg = Config()
+    cfg = ConfigBeta()
     args_dict = cfg.parse_to_dict(args)
     cfg.add_attr(args_dict)
     print_obj(cfg)
