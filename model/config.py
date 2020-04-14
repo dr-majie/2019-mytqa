@@ -84,10 +84,10 @@ class ConfigBeta(object):
         self.sa_layer = 2
 
         self.mlp_in = 512
-        self.mlp_hid = 256
+        self.mlp_hid = 1024
         self.glimpse = 1
         self.mlp_dropout = 0.1
-        self.mlp_out = 128
+        self.mlp_out = 1024
 
         self.max_que_len = 65  # 65
         self.max_opt_len = 25  # 25

@@ -18,12 +18,19 @@ np.set_printoptions(threshold=1e6)
 class TextualNetBeta(nn.Module):
     def __init__(self, cfg):
         super(TextualNetBeta, self).__init__()
-        self.lstm = nn.LSTM(
+        self.qo_lstm = nn.LSTM(
             input_size=cfg.init_word_emb,
             hidden_size=cfg.lstm_hid,
             num_layers=cfg.lstm_layer,
             batch_first=True,
-            bidirectional=cfg.bi_dir
+        )
+
+        self.cs_lstm = nn.LSTM(
+            input_size=cfg.init_word_emb,
+            hidden_size=cfg.lstm_hid // 2,
+            num_layers=cfg.lstm_layer,
+            batch_first=True,
+            bidirectional=True
         )
 
         # self.att = nn.MultiheadAttention(
@@ -31,7 +38,8 @@ class TextualNetBeta(nn.Module):
         #     cfg.multi_heads,
         #     cfg.multi_drop_out
         # )
-        self.att = MultiSA(cfg)
+        self.qo_att = MultiSA(cfg)
+        self.cs_att = MultiSA(cfg)
         self.flat = AttFlat(cfg)
         self.ln = LayerNorm(cfg.mlp_out)
         # self.classify = nn.CosineSimilarity(dim=-1)
@@ -41,10 +49,10 @@ class TextualNetBeta(nn.Module):
     def forward(self, que_emb, opt_emb, closest_sent_emb, cfg):
         batch_size = que_emb.shape[0]
         que_mask = make_mask(que_emb)
-        que_feat, _ = self.lstm(que_emb)
+        que_feat, _ = self.qo_lstm(que_emb)
         que_feat = que_feat.masked_fill(que_mask.unsqueeze(-1) == 1, 0.)
         # que_feat = que_feat.permute(1, 0, 2)
-        que_feat = self.att(que_feat, que_mask.unsqueeze(1).unsqueeze(2))
+        que_feat = self.qo_att(que_feat, que_mask.unsqueeze(1).unsqueeze(2))
         # que_feat = que_feat.permute(1, 0, 2)
         que_feat = que_feat.masked_fill(que_mask.unsqueeze(-1) == 1, 0.)
 
@@ -52,10 +60,10 @@ class TextualNetBeta(nn.Module):
         # print(opt_mask.detach().cpu().numpy()[7][6])
         opt_sum = make_mask_num(opt_emb)
         opt_feat = opt_emb.reshape(-1, cfg.max_opt_len, cfg.init_word_emb)
-        opt_feat, _ = self.lstm(opt_feat)
+        opt_feat, _ = self.qo_lstm(opt_feat)
         opt_feat = opt_feat.masked_fill(opt_mask.reshape(-1, cfg.max_opt_len).unsqueeze(-1) == 1, 0.)
         # opt_feat = opt_feat.permute(1, 0, 2)
-        opt_feat = self.att(opt_feat, opt_mask.reshape(batch_size * cfg.max_opt_count, -1).unsqueeze(1).unsqueeze(2))
+        opt_feat = self.qo_att(opt_feat, opt_mask.reshape(batch_size * cfg.max_opt_count, -1).unsqueeze(1).unsqueeze(2))
         # opt_feat = opt_feat.permute(1, 0, 2)
         opt_feat = opt_feat.reshape(batch_size, cfg.max_opt_count, cfg.max_opt_len, -1)
         opt_feat = opt_feat.masked_fill(opt_mask.unsqueeze(-1) == 1, 0.)
@@ -64,12 +72,12 @@ class TextualNetBeta(nn.Module):
         closest_sent_mask = make_mask(closest_sent_emb)
         closest_sent_sum = make_mask_num(closest_sent_emb)
         closest_sent_feat = closest_sent_emb.reshape(-1, cfg.max_words_sent, cfg.init_word_emb)
-        closest_sent_feat, _ = self.lstm(closest_sent_feat)
+        closest_sent_feat, _ = self.cs_lstm(closest_sent_feat)
         closest_sent_feat = closest_sent_feat.masked_fill(
             closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(-1) == 1, 0.)
         # closest_sent_feat = closest_sent_feat.permute(1, 0, 2)
-        closest_sent_feat = self.att(closest_sent_feat,
-                                     closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(1).unsqueeze(2))
+        closest_sent_feat = self.cs_att(closest_sent_feat,
+                                        closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(1).unsqueeze(2))
         # closest_sent_feat = closest_sent_feat.permute(1, 0, 2)
         closest_sent_feat = closest_sent_feat.reshape(batch_size, cfg.max_sent_para, cfg.max_words_sent, -1)
         closest_sent_feat = closest_sent_feat.masked_fill(closest_sent_mask.unsqueeze(-1) == 1, 0.)
