@@ -112,22 +112,13 @@ class SA(nn.Module):
         super(SA, self).__init__()
 
         self.mhatt = MHAtt(cfg)
-        self.ffn = FFN(cfg)
-
         self.dropout1 = nn.Dropout(cfg.multi_drop_out)
         self.norm1 = LayerNorm(cfg.multi_hidden)
-
-        self.dropout2 = nn.Dropout(cfg.multi_drop_out)
-        self.norm2 = LayerNorm(cfg.multi_hidden)
 
     def forward(self, y, y_mask):
         y = self.norm1(y + self.dropout1(
             self.mhatt(y, y, y, y_mask)
         ))
-
-        # y = self.norm2(y + self.dropout2(
-        #     self.ffn(y)
-        # ))
 
         return y
 

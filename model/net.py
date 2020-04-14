@@ -33,18 +33,11 @@ class TextualNetBeta(nn.Module):
             bidirectional=True
         )
 
-        # self.att = nn.MultiheadAttention(
-        #     cfg.lstm_hid,
-        #     cfg.multi_heads,
-        #     cfg.multi_drop_out
-        # )
-        self.qo_att = MultiSA(cfg)
-        self.cs_att = MultiSA(cfg)
+        self.att = MultiSA(cfg)
         self.flat = AttFlat(cfg)
         self.ln = LayerNorm(cfg.mlp_out)
         # self.classify = nn.CosineSimilarity(dim=-1)
         self.classify = nn.Linear(cfg.mlp_out * 3, 1)
-
 
     def forward(self, que_emb, opt_emb, closest_sent_emb, cfg):
         batch_size = que_emb.shape[0]
@@ -52,7 +45,7 @@ class TextualNetBeta(nn.Module):
         que_feat, _ = self.qo_lstm(que_emb)
         que_feat = que_feat.masked_fill(que_mask.unsqueeze(-1) == 1, 0.)
         # que_feat = que_feat.permute(1, 0, 2)
-        que_feat = self.qo_att(que_feat, que_mask.unsqueeze(1).unsqueeze(2))
+        que_feat = self.att(que_feat, que_mask.unsqueeze(1).unsqueeze(2))
         # que_feat = que_feat.permute(1, 0, 2)
         que_feat = que_feat.masked_fill(que_mask.unsqueeze(-1) == 1, 0.)
 
@@ -63,7 +56,7 @@ class TextualNetBeta(nn.Module):
         opt_feat, _ = self.qo_lstm(opt_feat)
         opt_feat = opt_feat.masked_fill(opt_mask.reshape(-1, cfg.max_opt_len).unsqueeze(-1) == 1, 0.)
         # opt_feat = opt_feat.permute(1, 0, 2)
-        opt_feat = self.qo_att(opt_feat, opt_mask.reshape(batch_size * cfg.max_opt_count, -1).unsqueeze(1).unsqueeze(2))
+        opt_feat = self.att(opt_feat, opt_mask.reshape(batch_size * cfg.max_opt_count, -1).unsqueeze(1).unsqueeze(2))
         # opt_feat = opt_feat.permute(1, 0, 2)
         opt_feat = opt_feat.reshape(batch_size, cfg.max_opt_count, cfg.max_opt_len, -1)
         opt_feat = opt_feat.masked_fill(opt_mask.unsqueeze(-1) == 1, 0.)
@@ -76,8 +69,8 @@ class TextualNetBeta(nn.Module):
         closest_sent_feat = closest_sent_feat.masked_fill(
             closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(-1) == 1, 0.)
         # closest_sent_feat = closest_sent_feat.permute(1, 0, 2)
-        closest_sent_feat = self.cs_att(closest_sent_feat,
-                                        closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(1).unsqueeze(2))
+        closest_sent_feat = self.att(closest_sent_feat,
+                                     closest_sent_mask.reshape(-1, cfg.max_words_sent).unsqueeze(1).unsqueeze(2))
         # closest_sent_feat = closest_sent_feat.permute(1, 0, 2)
         closest_sent_feat = closest_sent_feat.reshape(batch_size, cfg.max_sent_para, cfg.max_words_sent, -1)
         closest_sent_feat = closest_sent_feat.masked_fill(closest_sent_mask.unsqueeze(-1) == 1, 0.)

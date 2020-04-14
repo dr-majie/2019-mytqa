@@ -81,7 +81,7 @@ class ConfigBeta(object):
         self.multi_heads = 8
         self.multi_drop_out = 0.1
         self.multi_hidden = 512
-        self.sa_layer = 2
+        self.sa_layer = 4
 
         self.mlp_in = 512
         self.mlp_hid = 1024
