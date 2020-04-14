@@ -26,11 +26,17 @@ class TextualNetBeta(nn.Module):
             bidirectional=cfg.bi_dir
         )
 
+        # self.att = nn.MultiheadAttention(
+        #     cfg.lstm_hid,
+        #     cfg.multi_heads,
+        #     cfg.multi_drop_out
+        # )
         self.att = MultiSA(cfg)
         self.flat = AttFlat(cfg)
         self.ln = LayerNorm(cfg.mlp_out)
         # self.classify = nn.CosineSimilarity(dim=-1)
-        self.classify = nn.Linear(cfg.mlp_out, 1)
+        self.classify = nn.Linear(cfg.mlp_out * 3, 1)
+
 
     def forward(self, que_emb, opt_emb, closest_sent_emb, cfg):
         batch_size = que_emb.shape[0]
@@ -73,11 +79,12 @@ class TextualNetBeta(nn.Module):
 
         que_feat = que_feat.repeat(1, cfg.max_opt_count, 1).reshape(batch_size, cfg.max_opt_count, -1, cfg.word_emb)
         que_mask = que_mask.repeat(1, cfg.max_opt_count).reshape(batch_size, cfg.max_opt_count, -1)
+
         flat_que = self.flat(que_feat, que_mask, cfg)
         flat_opt = self.flat(opt_feat, opt_mask, cfg)
         flat_cf = self.flat(context_feat, context_mask, cfg)
 
-        fusion_feat = flat_que + flat_opt + flat_cf
+        fusion_feat = torch.cat((flat_que, flat_opt, flat_cf), dim=-1)
         # scores = self.classify(query_feat, flat_cf)
         scores = self.classify(fusion_feat).squeeze(-1)
         scores = scores.masked_fill(opt_sum == 1, -9e15)
@@ -120,7 +127,7 @@ class TextualNetBeta(nn.Module):
         _, ix_o2c = torch.max(att_o2c_sent, dim=-1)
         opt_csf = self.get_opt2csf(csf_ori, ix_o2c, cfg, opt_sum)
 
-        context_feat = que_csf + opt_csf
+        context_feat = torch.cat((que_csf, opt_csf), dim=2)
         context_mask = make_mask(context_feat)
         return context_feat, context_mask
 

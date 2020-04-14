@@ -79,18 +79,18 @@ class ConfigBeta(object):
             self.word_emb = 512
 
         self.multi_heads = 8
-        self.multi_drop_out = 0.5
+        self.multi_drop_out = 0.1
         self.multi_hidden = 512
         self.sa_layer = 2
 
         self.mlp_in = 512
-        self.mlp_hid = 1024
+        self.mlp_hid = 256
         self.glimpse = 1
-        self.mlp_dropout = 0.5
-        self.mlp_out = 1024
+        self.mlp_dropout = 0.1
+        self.mlp_out = 128
 
-        self.max_que_len = 65
-        self.max_opt_len = 25
+        self.max_que_len = 65  # 65
+        self.max_opt_len = 25  # 25
         self.max_opt_count = 7
         self.max_sent_para = 10
         self.max_words_sent = 20
