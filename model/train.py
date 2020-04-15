@@ -17,7 +17,7 @@ from model.net import TextualNetBeta
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam, lr_scheduler
 from model.test import test_engine
-from utils.util import print_obj
+from utils.util import print_obj, count_accurate_prediction
 
 
 def run_textual_net(cfg):
@@ -28,6 +28,7 @@ def run_textual_net(cfg):
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
     train_dataset = TextualDataset(cfg)
+
     train_dataloader = Data.DataLoader(
         dataset=train_dataset,
         batch_size=cfg.batch_size,
@@ -41,13 +42,17 @@ def run_textual_net(cfg):
 
     for epoch in range(cfg.max_epochs):
         loss_sum = 0
-        ques_sum = 0
-        correct_sum = 0
+        ques_sum_tf = 0
+        ques_sum_mc = 0
+
+        correct_sum_tf = 0
+        correct_sum_mc = 0
         for step, (
                 que_iter,
                 opt_iter,
                 ans_iter,
-                cs_iter
+                cs_iter,
+                qt_iter
         ) in enumerate(train_dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
@@ -71,19 +76,32 @@ def run_textual_net(cfg):
             loss_sum += loss
 
             loss.backward()
-            a = [x.grad for x in optimizer.param_groups[0]['params']]
             optimizer.step()
 
-            correct_sum += label_ix.eq(pred_ix).cpu().sum()
-            ques_sum += que_iter.shape[0]
-        correct_sum = np.array(correct_sum, dtype='float32')
-        accuracy = correct_sum / float(ques_sum)
-        print('epoch:', epoch, 'training loss {}'.format(loss_sum), 'correct sum:', correct_sum, 'total questions:',
-              ques_sum, 'accuracy: {}'.format(accuracy))
-        # print(net.state_dict()['classify.weight'])
+            a, b, c, d = count_accurate_prediction(label_ix, pred_ix, qt_iter)
+            correct_sum_tf += a
+            correct_sum_mc += b
+
+            ques_sum_tf += c
+            ques_sum_mc += d
+        correct_sum = correct_sum_tf + correct_sum_mc
+        total_que = ques_sum_mc + ques_sum_tf
+        tf_acc = correct_sum_tf / ques_sum_tf
+        mc_acc = correct_sum_mc / ques_sum_mc
+        overall_acc = correct_sum / total_que
+
+        print(40 * '=', '\n',
+              'epoch:', epoch, '\n',
+              'loss: {}'.format(loss_sum), '\n',
+              'correct sum:', correct_sum, '\n',
+              'total questions:', total_que, '\n',
+              'tf_accuracy:', tf_acc, '\n',
+              'mc_accuracy:', mc_acc, '\n',
+              'accuracy:', overall_acc)
+        print(40 * '=')
+        print('\n')
         test_engine(net.state_dict(), cfg, val_dataset)
         scheduler.step()
-
 
 
 def run_diagram_net(cfg):

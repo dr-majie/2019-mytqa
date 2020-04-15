@@ -174,6 +174,7 @@ def print_obj(obj):
 
 def load_texutal_data_beta(cfg):
     que_list = []
+    que_type_list = []
     opt_list = []
     ans_list = []
     closest_sent_list = []
@@ -212,7 +213,11 @@ def load_texutal_data_beta(cfg):
                     else:
                         que_emb = que_emb[:pad_dim]
                     que_list.append(que_emb)
-
+                # load question type
+                with open(os.path.join(ndq_path, 'question_type.pkl'), 'rb') as f_qt:
+                    que_type = pickle.load(f_qt)
+                    que_type = np.array(int(que_type))
+                    que_type_list.append(que_type)
                 # load option embedding
                 option = 'a'
                 opt_embs = []
@@ -246,10 +251,35 @@ def load_texutal_data_beta(cfg):
                     closest_sent_emb = pickle.load(f_closest_sent)
                     closest_sent_list.append(closest_sent_emb)
 
-    assert len(que_list) == len(opt_list) == len(ans_list) == len(
-        closest_sent_list), 'the number of these list is not equal.'
+    assert len(que_list) == len(opt_list) == len(ans_list) == len(closest_sent_list) == len(
+        que_type_list), 'the number of these list is not equal.'
 
     return torch.from_numpy(np.array(que_list, dtype='float32')), \
            torch.from_numpy(np.array(opt_list, dtype='float32')), \
            torch.from_numpy(np.array(ans_list, dtype='float32')), \
-           torch.from_numpy(np.array(closest_sent_list, dtype='float32'))
+           torch.from_numpy(np.array(closest_sent_list, dtype='float32')), \
+           torch.from_numpy(np.array(que_type_list, dtype='float32'))
+
+
+def count_accurate_prediction(label_ix, pred_ix, qt_iter):
+    result = label_ix.eq(pred_ix).cpu()
+    qt_tf = 0
+    qt_mc = 0
+
+    tf_sum = 0
+    mc_sum = 0
+
+    for i, flag in enumerate(result):
+        if flag == True:
+            if qt_iter[i] == 0:
+                qt_tf += 1
+                tf_sum += 1
+            else:
+                qt_mc += 1
+                mc_sum += 1
+        else:
+            if qt_iter[i] == 0:
+                tf_sum += 1
+            else:
+                mc_sum += 1
+    return qt_tf, qt_mc, tf_sum, mc_sum

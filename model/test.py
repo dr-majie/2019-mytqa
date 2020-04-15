@@ -10,6 +10,7 @@ import numpy as np
 import torch.utils.data as Data
 from torch.nn import CrossEntropyLoss
 from model.net import TextualNetBeta
+from utils.util import count_accurate_prediction
 
 
 def test_engine(state_dict, cfg, dataset):
@@ -30,14 +31,18 @@ def test_engine(state_dict, cfg, dataset):
             num_workers=cfg.num_workers,
             pin_memory=True,
         )
-        ques_sum = 0
-        correct_sum = 0
+        ques_sum_tf = 0
+        ques_sum_mc = 0
+
+        correct_sum_tf = 0
+        correct_sum_mc = 0
         loss_sum = 0
         for step, (
                 que_iter,
                 opt_iter,
                 ans_iter,
-                cs_iter
+                cs_iter,
+                qt_iter
         ) in enumerate(dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
@@ -52,20 +57,34 @@ def test_engine(state_dict, cfg, dataset):
                     cfg
                 )
 
-                ques_sum += que_iter.shape[0]
-                _, pred_idx = torch.max(pred, -1)
+                _, pred_ix = torch.max(pred, -1)
                 _, label_ix = torch.max(ans_iter, -1)
 
                 label_ix = label_ix.squeeze(-1)
                 loss = criterion(pred, label_ix)
                 loss_sum += loss
-                correct_sum += label_ix.eq(pred_idx).cpu().sum()
 
-        correct_sum = np.array(correct_sum, dtype='float32')
-        accuracy = correct_sum / float(ques_sum)
-        # print(net.state_dict()['classify.weight'])
+                a, b, c, d = count_accurate_prediction(label_ix, pred_ix, qt_iter)
+                correct_sum_tf += a
+                correct_sum_mc += b
 
-        print('val loss {}'.format(loss_sum), '* correct prediction:', correct_sum, '  * total questions:', ques_sum,
-              '  * accuracy is {}'.format(accuracy), '\n')
+                ques_sum_tf += c
+                ques_sum_mc += d
+
+        correct_sum = correct_sum_tf + correct_sum_mc
+        total_que = ques_sum_mc + ques_sum_tf
+        tf_acc = correct_sum_tf / ques_sum_tf
+        mc_acc = correct_sum_mc / ques_sum_mc
+        overall_acc = correct_sum / total_que
+
+        print(40 * '*', '\n',
+              'loss: {}'.format(loss_sum), '\n',
+              'correct sum:', correct_sum, '\n',
+              'total questions:', total_que, '\n',
+              'tf_accuracy:', tf_acc, '\n',
+              'mc_accuracy:', mc_acc, '\n',
+              'overall accuracy:', overall_acc)
+        print(40 * '*')
+        print('\n')
     else:
         pass

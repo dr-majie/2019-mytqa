@@ -12,7 +12,7 @@ from utils.util import load_texutal_data_beta
 class TextualDataset(Data.Dataset):
     def __init__(self, cfg):
         # self.que, self.opt, self.ans, self.adj_matrices, self.node_emb, _ = load_texutal_data(cfg)
-        self.que, self.opt, self.ans, self.closest_sent = load_texutal_data_beta(cfg)
+        self.que, self.opt, self.ans, self.closest_sent, self.que_type = load_texutal_data_beta(cfg)
         self.data_size = self.que.__len__()
         print('data_size: {}'.format(self.data_size))
 
@@ -23,8 +23,9 @@ class TextualDataset(Data.Dataset):
         # adj_matrices_iter = self.adj_matrices[idx]
         # node_emb_iter = self.node_emb[idx]
         cs_iter = self.closest_sent[idx]
+        qt_iter = self.que_type[idx]
         # return que_iter, opt_iter, ans_iter, adj_matrices_iter, node_emb_iter
-        return que_iter, opt_iter, ans_iter, cs_iter
+        return que_iter, opt_iter, ans_iter, cs_iter, qt_iter
 
     def __len__(self):
         assert len(self.que) == len(self.opt) == len(self.ans) == len(
