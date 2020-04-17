@@ -191,7 +191,7 @@ class MLP(nn.Module):
         super(MLP, self).__init__()
 
         self.fc = FC(in_size, mid_size, dropout_r=dropout_r, use_relu=use_relu)
-        self.linear = nn.Linear(mid_size, out_size)
+        self.linear = nn.Linear(mid_size, out_size, bias=False)
 
     def forward(self, x):
         return self.linear(self.fc(x))
@@ -203,7 +203,7 @@ class FC(nn.Module):
         self.dropout_r = dropout_r
         self.use_relu = use_relu
 
-        self.linear = nn.Linear(in_size, out_size)
+        self.linear = nn.Linear(in_size, out_size, bias=False)
 
         if use_relu:
             self.relu = nn.ReLU(inplace=True)
