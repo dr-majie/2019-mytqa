@@ -68,6 +68,10 @@ from types import MethodType
 
 class ConfigBeta(object):
     def __init__(self):
+        self.gat_dropout = 0.1
+        self.gat_alpha = 0.2
+        self.gat_heads = 8
+
         self.init_word_emb = 300
         self.bi_dir = False
         self.lstm_hid = 512
@@ -101,7 +105,11 @@ class ConfigBeta(object):
         self.num_workers = 8
         self.max_epochs = 300
 
-        self.pre_path = '/data/kf/majie/wangyaxian/tqa/data/'
+        # diagram model parameters
+        self.max_diagram_node = 10
+        self.max_dd_num = 5
+
+        self.pre_path = '/data/kf/majie/wangyaxian/2019-tqa-v1/data/'
         self.suf_path = '/processed_data/one_hot_files/'
 
     def parse_to_dict(self, args):
