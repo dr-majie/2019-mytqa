@@ -225,21 +225,26 @@ class generate_network_ready_files():
         print(node_count)
 
     def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path):
-        for node in node_dict:
-            if len(node) == 1:
-                node_dict[node] = self.get_vec_for_word(model, node)
-            else:
-                vec_arr = []
-                words = word_tokenize(node)
-                words = [w for w in words if w not in string.punctuation]
-                for word in words:
-                    vec_arr.append(self.get_vec_for_word(model, word).reshape(300, ))
-                vec_sum = np.array(vec_arr).sum(axis=1)
-                vec_sum_input = torch.from_numpy(np.array([vec_sum]))
-                att_vec = F.softmax(vec_sum_input, dim=1)
-                vec_arr = torch.from_numpy(np.array(vec_arr))
-                weighted_vec = torch.mm(att_vec, vec_arr)
-                node_dict[node] = weighted_vec
+        if node_dict:
+            for node in node_dict:
+                # if len(node) == 1:
+                if len(node.split(" ")) == 1:
+                    node_dict[node] = self.get_vec_for_word(model, node)
+                else:
+                    vec_arr = []
+                    words = word_tokenize(node)
+                    words = [w for w in words if w not in string.punctuation]
+                    for word in words:
+                        vec_arr.append(self.get_vec_for_word(model, word).reshape(300, ))
+                    vec_sum = np.array(vec_arr).sum(axis=1)
+                    vec_sum_input = torch.from_numpy(np.array([vec_sum]))
+                    att_vec = F.softmax(vec_sum_input, dim=1)
+                    vec_arr = torch.from_numpy(np.array(vec_arr))
+                    weighted_vec = torch.mm(att_vec, vec_arr)
+                    node_dict[node] = weighted_vec
+        else:
+            node_dict = {"no_node": np.zeros((1, 300))}
+            adjacency_matrix = np.array([[0]])
 
         with open(os.path.join(graph_que_ins_path, 'node_embedding.pkl'), 'wb') as f_node_emb:
             pickle.dump(node_dict, f_node_emb)

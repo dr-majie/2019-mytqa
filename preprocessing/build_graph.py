@@ -119,11 +119,13 @@ def build_diagram_graph(que_path, diagram_type,scp):
     img_url = os.path.join(que_path, img_name[0])
     image = Image.open(img_url)
     size = len(diagram_info)
+    # if size == 0:
+    #     adjacency_matrix = [0]
+    # else:
     adjacency_matrix = np.zeros((size, size))
+    node_dict = collections.OrderedDict()
     node_of_diagram_graph = set()
     # relation = set()
-    node_dict = collections.OrderedDict()
-
     all_dependency_relations = set()
     for tree in dependency_trees:
         dependency_relations = set()
@@ -144,14 +146,17 @@ def build_diagram_graph(que_path, diagram_type,scp):
     relation = set()
     count_of_relations_in_dependency = 0
     count_of_relations_in_location = 0
-    flag = 0
+    # flag = 0
     for i in range(size):
         for j in range(size):
-            if i != j:
-                node_s = diagram_info[i]['WordText']
-                node_t = diagram_info[j]['WordText']
-                # for tree in dependency_trees:
-                #     for edge in tree:
+            flag = 0
+            node_s = diagram_info[i]['WordText']
+            node_t = diagram_info[j]['WordText']
+            # for tree in dependency_trees:
+            #     for edge in tree:
+            if node_s is None:
+                pass
+            else:
                 for edge in all_dependency_relations:
                     if node_s in edge and node_t in edge:
                         flag = 1
@@ -168,7 +173,7 @@ def build_diagram_graph(que_path, diagram_type,scp):
                         relation.add(edge_of_diagram)
                         count_of_relations_in_dependency += 1
                     else:
-                        pass
+                        flag = 0
 
                 if flag == 0:
                     xi_axis = diagram_info[i]['Coordinate']['Center'][0]
@@ -181,7 +186,6 @@ def build_diagram_graph(que_path, diagram_type,scp):
                         edge_of_diagram = (i, j)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_location += 1
-
     print("count find by dependency relations", count_of_relations_in_dependency)
     print("count find by location relations", count_of_relations_in_location)
     print("count of all relations in diagram", len(relation))
