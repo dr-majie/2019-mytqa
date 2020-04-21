@@ -91,7 +91,7 @@ class ConfigBeta(object):
         self.mlp_hid = 256
         self.glimpse = 1
         self.mlp_dropout = 0.2
-        self.mlp_out = 128
+        self.mlp_out = 256
 
         self.max_que_len = 65  # 65
         self.max_opt_len = 25  # 25

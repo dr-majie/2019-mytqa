@@ -174,7 +174,7 @@ def run_diagram_net(cfg):
 
             correct_sum += label_ix.eq(pred_ix).cpu().sum()
             que_sum += que_iter.shape[0]
-
+        correct_sum = np.array(correct_sum, dtype='float32')
         overall_acc = correct_sum / que_sum
 
         print(40 * '=', '\n',

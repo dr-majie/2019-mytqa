@@ -29,11 +29,5 @@ class GAT(nn.Module):
         x = torch.cat([att(x, adj, cfg) for att in self.attentions], dim=-1)
         x = F.dropout(x, self.dropout, training=self.training)
         x = F.elu(self.out_att(x, adj, cfg))
-        # return F.log_softmax(x, dim=1)
-        # return the representation of each node
-        # x = torch.cat([att(x, adj, cfg) for att in self.attentions], dim=-1)
-        # x = F.dropout(x, self.dropout, training=self.training)
-        # x = torch.reshape(x, (-1, batch_size, cfg.max_opt_count, cfg.gat_max_nodes, cfg.gat_hid))
-        # x = torch.mean(x, 0)
-        # x = F.elu(x)
+
         return x

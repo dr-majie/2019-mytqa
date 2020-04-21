@@ -142,9 +142,9 @@ class LayerNorm(nn.Module):
 # ---- Flatten the sequence ----
 # ------------------------------
 
-class AttFlat(nn.Module):
+class AttFlatText(nn.Module):
     def __init__(self, cfg):
-        super(AttFlat, self).__init__()
+        super(AttFlatText, self).__init__()
 
         self.mlp = MLP(
             in_size=cfg.mlp_in,
@@ -175,6 +175,48 @@ class AttFlat(nn.Module):
             )
 
         x_atted = torch.cat(att_list, dim=2)
+        x_atted = self.linear_merge(x_atted)
+
+        return x_atted
+
+
+# ------------------------------
+# ---- Flatten the diagram ----
+# ------------------------------
+
+class AttFlatDiagram(nn.Module):
+    def __init__(self, cfg):
+        super(AttFlatDiagram, self).__init__()
+
+        self.mlp = MLP(
+            in_size=cfg.mlp_in,
+            mid_size=cfg.mlp_hid,
+            out_size=cfg.glimpse,
+            multi_drop_out=cfg.mlp_dropout,
+            use_relu=True
+        )
+
+        self.linear_merge = nn.Linear(
+            cfg.mlp_in * cfg.glimpse,
+            cfg.mlp_out,
+            bias=False
+        )
+
+    def forward(self, x, x_mask, cfg):
+        att = self.mlp(x)
+        att = att.masked_fill(
+            x_mask.unsqueeze(-1) == 1,
+            -9e15
+        )
+        att = F.softmax(att, dim=1)
+
+        att_list = []
+        for i in range(cfg.glimpse):
+            att_list.append(
+                torch.sum(att[:, :, i: i + 1] * x, dim=1)
+            )
+
+        x_atted = torch.cat(att_list, dim=1)
         x_atted = self.linear_merge(x_atted)
 
         return x_atted
@@ -252,11 +294,11 @@ class GraphAttentionLayer(nn.Module):
 
     def forward(self, input, adj, cfg):
         h = torch.matmul(input, self.W)
-        N = cfg.gat_max_nodes
+        N = cfg.max_diagram_node
         batch_size = h.shape[0]
         a_input = torch.cat(
-            [h.repeat(1, 1, 1, N).view(batch_size, cfg.max_opt_count, N * N, -1), h.repeat(1, 1, N, 1)],
-            dim=-1).view(batch_size, cfg.max_opt_count, N, -1, 2 * self.out_features)
+            [h.repeat(1, 1, N).view(batch_size, N * N, -1), h.repeat(1, N, 1)],
+            dim=-1).view(batch_size, N, -1, 2 * self.out_features)
         e = self.leakyrelu(torch.matmul(a_input, self.a).squeeze(-1))
 
         zero_vec = -9e15 * torch.ones_like(e)
@@ -309,12 +351,12 @@ class INTRA_2_INTER(nn.Module):
         super(INTRA_2_INTER, self).__init__()
         self.inter_att_list = nn.ModuleList(IMA(cfg) for _ in range(cfg.sa_layer))
 
-    def forward(self, ques, img, ques_mask, img_mask):
+    def forward(self, que, diagram, que_mask, diagram_mask):
         for inter_att in self.inter_att_list:
-            ques_update = inter_att(img, ques, img_mask, ques_mask)
-            img_update = inter_att(ques, img, ques_mask, img_mask)
+            que_update = inter_att(diagram, que, diagram_mask, que_mask)
+            diagram_update = inter_att(que, diagram, que_mask, diagram_mask)
 
-            ques = ques_update
-            img = img_update
+            que = que_update
+            diagram = diagram_update
 
-        return ques, img
+        return que, diagram

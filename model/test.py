@@ -114,8 +114,7 @@ def test_engine(state_dict, cfg, dataset):
                 dd_matrix_iter,
                 dd_node_emb_iter,
                 ans_iter,
-                cs_iter,
-                qt_iter
+                cs_iter
         ) in enumerate(dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
@@ -130,6 +129,10 @@ def test_engine(state_dict, cfg, dataset):
                 pred = net(
                     que_iter,
                     opt_iter,
+                    dq_matrix_iter,
+                    dq_node_emb_iter,
+                    dd_matrix_iter,
+                    dd_node_emb_iter,
                     cs_iter,
                     cfg
                 )
@@ -143,6 +146,7 @@ def test_engine(state_dict, cfg, dataset):
 
                 correct_sum += label_ix.eq(pred_ix).cpu().sum()
                 que_sum += que_iter.shape[0]
+        correct_sum = np.array(correct_sum, dtype='float32')
         overall_acc = correct_sum / que_sum
 
         print(40 * '*', '\n',
