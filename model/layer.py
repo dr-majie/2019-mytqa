@@ -349,7 +349,7 @@ class IMA(nn.Module):
 class INTRA_2_INTER(nn.Module):
     def __init__(self, cfg):
         super(INTRA_2_INTER, self).__init__()
-        self.inter_att_list = nn.ModuleList(IMA(cfg) for _ in range(cfg.sa_layer))
+        self.inter_att_list = nn.ModuleList(IMA(cfg) for _ in range(cfg.intra2inter_layer))
 
     def forward(self, que, diagram, que_mask, diagram_mask):
         for inter_att in self.inter_att_list:

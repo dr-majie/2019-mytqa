@@ -77,8 +77,8 @@ class TextualNetBeta(nn.Module):
         flat_que_csf = self.flat(que_csf, que_csf_mask, cfg)
         flat_opt_csf = self.flat(opt_csf, opt_csf_mask, cfg)
 
-        fusion_feat = torch.cat((flat_que, flat_opt, flat_que_csf, flat_opt_csf), dim=-1)
-        # fusion_feat = torch.cat((flat_que, flat_que_csf, flat_opt, flat_opt_csf), dim=-1)
+        # fusion_feat = torch.cat((flat_que, flat_opt, flat_que_csf, flat_opt_csf), dim=-1)
+        fusion_feat = torch.cat((flat_que, flat_que_csf, flat_opt, flat_opt_csf), dim=-1)
         scores = self.classify(fusion_feat).squeeze(-1)
         scores = scores.masked_fill(opt_sum == 1, -9e15)
         return scores
@@ -182,7 +182,7 @@ class DiagramNet(nn.Module):
         self.flat_dia = AttFlatDiagram(cfg)
         self.ln = LayerNorm(cfg.mlp_out)
 
-        self.classify = nn.Linear(cfg.mlp_out * 5, 1)
+        self.classify = nn.Linear(cfg.mlp_out, 1)
 
     def forward(self, que_emb, opt_emb, dq_matrix, dq_node_emb, dd_matrix, dd_node_emb, closest_sent_emb, cfg):
         batch_size = que_emb.shape[0]
@@ -249,7 +249,10 @@ class DiagramNet(nn.Module):
         dq_feat = self.flat_dia(dq_node_feat, dq_node_mask, cfg)
         dq_feat = dq_feat.repeat(1, cfg.max_opt_count).reshape(-1, cfg.max_opt_count, cfg.mlp_out)
 
-        fusion_feat = torch.cat((que_feat, que_csf_feat, dq_feat, opt_feat, opt_csf_feat), dim=-1)
+        # fusion_feat = torch.cat((que_feat, que_csf_feat, dq_feat, opt_feat, opt_csf_feat), dim=-1)
+        fusion_feat = que_feat + que_csf_feat + dq_feat + opt_feat + opt_csf_feat
+        # fusion_feat = que_feat + dq_feat + opt_feat
+        fusion_feat = self.ln(fusion_feat)
         scores = self.classify(fusion_feat).squeeze(-1)
         scores = scores.masked_fill(opt_sum == 1, -9e15)
         return scores
@@ -260,8 +263,12 @@ class DiagramNet(nn.Module):
                                                                                 cfg.max_diagram_node, cfg.word_emb)
         dq_ori_feat_mask = make_mask(dq_ori_feat)
         sim = self.cos(dq_node_feat_expand, dd_node_feat)
-        sim = torch.mean(sim, 2)
-        v, ix = torch.max(sim, dim=-1)
+        sim = torch.sum(sim, dim=-1)
+        dd_node_mask = make_mask(dd_node_feat)
+        dd_node_num = torch.sum(~(dd_node_mask), dim=-1)
+        dd_node_num = dd_node_num.masked_fill(dd_node_num == 0, -9e15)
+        average_sim = torch.div(sim, dd_node_num).float()
+        v, ix = torch.max(average_sim, dim=-1)
 
         closest_dd_node_feat = torch.cat([dd_node_feat[i][int(id)] for i, id in enumerate(ix)], dim=0)
         closest_dd_node_feat = closest_dd_node_feat.reshape(-1, cfg.max_diagram_node, cfg.word_emb)

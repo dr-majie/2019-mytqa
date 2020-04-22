@@ -207,7 +207,7 @@ if __name__ == '__main__':
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    cfg = ConfigBeta()
+    cfg = ConfigBeta(args.model)
     args_dict = cfg.parse_to_dict(args)
     cfg.add_attr(args_dict)
     print_obj(cfg)

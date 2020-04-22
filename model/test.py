@@ -142,6 +142,7 @@ def test_engine(state_dict, cfg, dataset):
 
                 label_ix = label_ix.squeeze(-1)
                 loss = criterion(pred, label_ix)
+                # print(loss)
                 loss_sum += loss
 
                 correct_sum += label_ix.eq(pred_ix).cpu().sum()
