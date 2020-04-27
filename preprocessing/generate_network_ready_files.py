@@ -18,7 +18,7 @@ import copy
 
 class generate_network_ready_files():
     def __init__(self, word2vec_path, processed_data_path, is_test_data, word_vec_size, max_q_length, max_option_length,
-                 max_opt_count, max_sent_para, max_words_sent, op_path=None):
+                 max_opt_count, max_sent_para, max_words_sent,op_path=None):
         self.processed_data_path = processed_data_path
         self.raw_text_path = os.path.join(processed_data_path, 'text_question_sep_files')
         self.is_test_data = is_test_data
@@ -44,6 +44,10 @@ class generate_network_ready_files():
         self.num_of_words_in_sent = max_words_sent
         self.num_of_words_in_closest_sentence = max_sent_para * max_words_sent
         self.num_of_options_for_quest = max_opt_count
+
+        # self.num_of_nodes_in_diagram = max_diagram_nodes
+        # self.num_of_relations_in_diagram_node = max_nodes_relations
+
         self.lessons_list = self.get_list_of_dirs(self.raw_text_path)
         self.unknown_words_vec_dict = None
         self.unknown_words_vec_dict_file = 'unk_word2vec_dict.pkl'
@@ -225,7 +229,10 @@ class generate_network_ready_files():
         print(node_count)
 
     def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path):
+
         if node_dict:
+            # if len(node_dict) > self.num_of_nodes_in_diagram:
+            #     node_dict = {k: node_dict[k] for k in list(node_dict.keys())[:self.num_of_nodes_in_diagram]}
             for node in node_dict:
                 # if len(node) == 1:
                 if len(node.split(" ")) == 1:
