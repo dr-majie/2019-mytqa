@@ -9,7 +9,7 @@ import torch
 import numpy as np
 import torch.utils.data as Data
 from torch.nn import CrossEntropyLoss
-from model.net import TextualNetBeta, DiagramNet
+from model.net import TextualNetBeta, DiagramNet, DiagramNetv2
 from utils.util import count_accurate_prediction_text
 
 
@@ -95,7 +95,7 @@ def test_engine(state_dict, cfg, dataset):
         else:
             net.load_state_dict(state_dict)
         # print(net.state_dict()['classify.weight'])
-        criterion = CrossEntropyLoss(reduction='sum')
+        criterion = CrossEntropyLoss()
         print('Note: begin to test the model')
         dataloader = Data.DataLoader(
             dataset=dataset,
@@ -151,7 +151,7 @@ def test_engine(state_dict, cfg, dataset):
         overall_acc = correct_sum / que_sum
 
         print(40 * '*', '\n',
-              'loss: {}'.format(loss_sum), '\n',
+              'loss: {}'.format(loss_sum / que_sum), '\n',
               'correct sum:', correct_sum, '\n',
               'total questions:', que_sum, '\n',
               'overall accuracy:', overall_acc)

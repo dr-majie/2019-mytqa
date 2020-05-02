@@ -290,7 +290,8 @@ class GraphAttentionLayer(nn.Module):
         self.a = nn.Parameter(torch.zeros(size=(2 * out_features, 1)))
         nn.init.xavier_uniform_(self.a.data, gain=1.414)
 
-        self.leakyrelu = nn.LeakyReLU(self.alpha)
+        # self.leakyrelu = nn.LeakyReLU(self.alpha)
+        self.leakyrelu = nn.ReLU(inplace=True)
 
     def forward(self, input, adj, cfg):
         h = torch.matmul(input, self.W)
@@ -323,22 +324,22 @@ class IMA(nn.Module):
         super(IMA, self).__init__()
 
         self.mhatt = MHAtt(cfg)
-        self.ffn = FFN(cfg)
+        # self.ffn = FFN(cfg)
 
         self.dropout1 = nn.Dropout(cfg.multi_drop_out)
         self.norm1 = LayerNorm(cfg.multi_hidden)
 
-        self.dropout2 = nn.Dropout(cfg.multi_drop_out)
-        self.norm2 = LayerNorm(cfg.multi_hidden)
+        # self.dropout2 = nn.Dropout(cfg.multi_drop_out)
+        # self.norm2 = LayerNorm(cfg.multi_hidden)
 
     def forward(self, q, i, q_mask, i_mask):
         i = self.norm1(i + self.dropout1(
             self.mhatt(v=q, k=q, q=i, mask=q_mask)
         ))
 
-        i = self.norm2(i + self.dropout2(
-            self.ffn(i)
-        ))
+        # i = self.norm2(i + self.dropout2(
+        #     self.ffn(i)
+        # ))
 
         return i
 

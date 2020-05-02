@@ -9,7 +9,8 @@ import os
 import numpy as np
 import pickle
 import torch
-
+import collections
+import matplotlib.pyplot as plt
 
 def get_list_of_dirs(dir_path):
     dirlist = [name for name in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, name))]
@@ -277,21 +278,22 @@ def load_diagram_data(cfg):
     opt_list = []
     ans_list = []
     closest_sent_list = []
+    count_dict = collections.defaultdict(int)
 
     if cfg.mode == 'train':
         if cfg.splits == 'train+val':
             slice_paths = ['train', 'val']
-            print('Note: begin to load **', slice_paths, '**.')
+            print('Note: begin to load training set')
         else:
-            slice_paths = ['train']
-            print('Note: begin to load **', slice_paths, '**.')
+            slice_paths = ['train', 'test']
+            print('Note: begin to load training set')
     else:
         if cfg.splits == 'train+val':
             slice_paths = ['test']
-            print('Note: begin to load **', slice_paths, '**.')
+            print('Note: begin to load test set')
         else:
             slice_paths = ['val']
-            print('Note: begin to load **', slice_paths, '**.')
+            print('Note: begin to load test set')
 
     for slice_path in slice_paths:
         path = cfg.pre_path + slice_path + cfg.suf_path
@@ -364,6 +366,10 @@ def load_diagram_data(cfg):
                         amd = np.pad(amd, ((0, pad_dim), (0, pad_dim)), 'constant', constant_values=(0, 0))
                     else:
                         amd = amd[:pad_dim, :pad_dim]
+                    if count_dict[np.sum(amd)] != 0:
+                        count_dict[np.sum(amd)] += 1
+                    else:
+                        count_dict[np.sum(amd)] = 1
                     dq_matrix_list.append(amd)
 
                 with open(os.path.join(dq_path, 'node_embedding.pkl'), 'rb') as f_node_emb:
@@ -388,7 +394,6 @@ def load_diagram_data(cfg):
                         else:
                             opt_emb = opt_emb[:pad_dim]
                         opt_embs.append(opt_emb)
-
                     option = chr(ord(option) + 1)
                 difference = cfg.max_opt_count - len(opt_embs)
                 # pad the number of options to max_opt_num
@@ -400,7 +405,8 @@ def load_diagram_data(cfg):
                 opt_list.append(opt_embs)
                 # load correct answer
                 with open(os.path.join(dq_path, 'correct_answer.pkl'), 'rb') as f_ans:
-                    ans_one_hot = pickle.load(f_ans).reshape(-1, cfg.max_opt_count)
+                    ans_one_hot = pickle.load(f_ans).reshape(1, -1)
+                    ans_one_hot = ans_one_hot[:, :cfg.max_opt_count]
                     ans_list.append(ans_one_hot)
 
                 # load closest sentence embedding
@@ -411,6 +417,13 @@ def load_diagram_data(cfg):
     assert len(que_list) == len(dq_matrix_list) == len(dq_node_emb_list) == len(dd_matrix_list) == len(
         dd_node_emb_list) == len(opt_list) == len(ans_list) == len(
         closest_sent_list), 'the number of these list is not equal.'
+    # count_dict = sorted(count_dict.items(), key=lambda x: x[0])
+    # print(count_dict)
+    # plt.bar(range(len(count_dict)), list(count_dict.keys()), align='center')
+    # plt.xticks(range(len(count_dict)), list(count_dict.values()))
+    # plt.xticks(fontsize=1)
+    # plt.savefig("mygraph" + str(slice_paths) + '.png', dpi=1200)
+    # plt.show()
 
     return torch.from_numpy(np.array(que_list, dtype='float32')), \
            torch.from_numpy(np.array(opt_list, dtype='float32')), \

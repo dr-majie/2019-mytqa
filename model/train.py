@@ -14,9 +14,10 @@ import torch.utils.data as Data
 from model.config import ConfigBeta
 from data.textual_data_loader import TextualDataset
 from data.diagram_data_loader import DiagramDataset
-from model.net import TextualNetBeta, DiagramNet
+from model.net import TextualNetBeta, DiagramNet, DiagramNetv2
 from torch.nn import CrossEntropyLoss
-from torch.optim import Adam, lr_scheduler, AdamW
+from torch.nn.utils import clip_grad_norm_
+from torch.optim import Adam, lr_scheduler, SGD, Adagrad, Adadelta, RMSprop
 from model.test import test_engine
 from utils.util import print_obj, count_accurate_prediction_text
 
@@ -110,10 +111,15 @@ def run_diagram_net(cfg):
     net = DiagramNet(cfg)
     net.cuda()
     net.train()
-    criterion = CrossEntropyLoss(reduction='sum')
+    criterion = CrossEntropyLoss()
     optimizer = Adam(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
-    scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.99)
+    # optimizer = SGD(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay, momentum=0.9)
+    # optimizer = Adagrad(net.parameters(), weight_decay=cfg.weight_decay)
+    # optimizer = Adadelta(net.parameters(), lr=0.1, weight_decay=cfg.weight_decay)
+    # optimizer = RMSprop(net.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    scheduler = lr_scheduler.ExponentialLR(optimizer, gamma=0.9)
     train_dataset = DiagramDataset(cfg)
+
 
     train_dataloader = Data.DataLoader(
         dataset=train_dataset,
@@ -170,6 +176,7 @@ def run_diagram_net(cfg):
             loss_sum += loss
 
             loss.backward()
+            clip_grad_norm_(net.parameters(), 10)
             optimizer.step()
 
             correct_sum += label_ix.eq(pred_ix).cpu().sum()
@@ -179,7 +186,7 @@ def run_diagram_net(cfg):
 
         print(40 * '=', '\n',
               'epoch:', epoch, '\n',
-              'loss: {}'.format(loss_sum), '\n',
+              'loss: {}'.format(loss_sum / que_sum), '\n',
               'correct sum:', correct_sum, '\n',
               'total questions:', que_sum, '\n',
               'accuracy:', overall_acc)

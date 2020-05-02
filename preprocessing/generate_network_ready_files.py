@@ -51,7 +51,7 @@ class generate_network_ready_files():
         self.lessons_list = self.get_list_of_dirs(self.raw_text_path)
         self.unknown_words_vec_dict = None
         self.unknown_words_vec_dict_file = 'unk_word2vec_dict.pkl'
-        self.common_files_path = '../common_files'
+        self.common_files_path = './common_files'
 
         if not os.path.exists(self.common_files_path):
             os.makedirs(self.common_files_path)

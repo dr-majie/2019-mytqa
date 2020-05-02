@@ -198,26 +198,26 @@ def build_diagram_graph(que_path, diagram_type, scp):
     for i, node in enumerate(node_of_diagram_graph):
         node_dict[node] = i
     # 法一
-    # size = len(node_dict)
-    # adjacency_matrix = np.zeros((size, size))
-    # for edge in relation:
-    #     adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
-    #     adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
-
-    if len(node_dict) > max_diagram_nodes:
-        node_dict = {k: node_dict[k] for k in list(node_dict.keys())[:max_diagram_nodes]}
-    for edge in relation:
-        if edge[0] in node_dict and edge[1] in node_dict:
-            relation_final.add(edge)
     size = len(node_dict)
     adjacency_matrix = np.zeros((size, size))
-    degree_matrix = np.zeros(size)
-    for edge in relation_final:
-        if degree_matrix[node_dict[edge[0]]] < max_relations_of_node and degree_matrix[node_dict[edge[1]]] < max_relations_of_node:
-            adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
-            adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
-            degree_matrix[node_dict[edge[0]]] += 1
-            degree_matrix[node_dict[edge[1]]] += 1
+    for edge in relation:
+        adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
+        adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
+
+    # if len(node_dict) > max_diagram_nodes:
+    #     node_dict = {k: node_dict[k] for k in list(node_dict.keys())[:max_diagram_nodes]}
+    # for edge in relation:
+    #     if edge[0] in node_dict and edge[1] in node_dict:
+    #         relation_final.add(edge)
+    # size = len(node_dict)
+    # adjacency_matrix = np.zeros((size, size))
+    # degree_matrix = np.zeros(size)
+    # for edge in relation_final:
+    #     if degree_matrix[node_dict[edge[0]]] < max_relations_of_node and degree_matrix[node_dict[edge[1]]] < max_relations_of_node:
+    #         adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
+    #         adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
+    #         degree_matrix[node_dict[edge[0]]] += 1
+    #         degree_matrix[node_dict[edge[1]]] += 1
     return node_dict, adjacency_matrix
 
 

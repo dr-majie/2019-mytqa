@@ -68,7 +68,8 @@ from types import MethodType
 
 class ConfigBeta(object):
     def __init__(self, flag):
-        self.gat_dropout = 0.1
+        self.gat_dropout = 0.0
+        self.gat_hidden = 64
         self.gat_alpha = 0.2
         self.gat_heads = 8
 
@@ -88,36 +89,37 @@ class ConfigBeta(object):
         self.sa_layer = 1
 
         if flag == 'tn':
+            self.max_opt_count = 7
             self.mlp_in = 512
             self.mlp_hid = 256
             self.glimpse = 1
-            self.mlp_dropout = 0.5
+            self.mlp_dropout = 0.2
             self.mlp_out = 128
         else:
+            self.max_opt_count = 4
             self.intra2inter_layer = 1
             self.mlp_in = 512
-            self.mlp_hid = 1024
+            self.mlp_hid = 256
             self.glimpse = 1
-            self.mlp_dropout = 0.5
-            self.mlp_out = 1024
+            self.mlp_dropout = 0.2
+            self.mlp_out = 128
 
         self.max_que_len = 65  # 65
         self.max_opt_len = 25  # 25
-        self.max_opt_count = 7
         self.max_sent_para = 10
         self.max_words_sent = 20
 
         self.lr = 0.0001
-        self.weight_decay = 0.01
+        self.weight_decay = 5e-4
         self.batch_size = 8
         self.num_workers = 8
         self.max_epochs = 300
 
         # diagram model parameters
-        self.max_diagram_node = 30
+        self.max_diagram_node = 60
         self.max_dd_num = 5
 
-        self.pre_path = '/data/kf/majie/wangyaxian/2019-tqa-v1/data/'
+        self.pre_path = '/data/kf/majie/codehub/2020-tqa-1/data/'
         self.suf_path = '/processed_data/one_hot_files/'
 
     def parse_to_dict(self, args):
