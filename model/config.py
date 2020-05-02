@@ -109,7 +109,7 @@ class ConfigBeta(object):
         self.max_sent_para = 10
         self.max_words_sent = 20
 
-        self.lr = 0.0001
+        self.lr = 0.0005
         self.weight_decay = 5e-4
         self.batch_size = 8
         self.num_workers = 8
