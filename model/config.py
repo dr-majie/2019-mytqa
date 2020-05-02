@@ -121,6 +121,8 @@ class ConfigBeta(object):
 
         self.pre_path = '/data/kf/majie/codehub/2020-tqa-1/data/'
         self.suf_path = '/processed_data/one_hot_files/'
+        # self.pre_path = '/data/kf/majie/wangyaxian/2019-tqa-v2/data/'
+        # self.suf_path = '/processed_data/one_hot_files/'
 
     def parse_to_dict(self, args):
         args_dict = {}
