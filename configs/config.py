@@ -16,6 +16,8 @@ class Config(object):
         self.max_opt_count = 7
         self.max_sent_para = 10
         self.max_words_sent = 20
+        # self.max_diagram_nodes = 20
+        # self.max_nodes_relations = 3
         self.nb_epoch = 50
         self.batch_size = 16
         self.steps_per_epoch_dq = 54

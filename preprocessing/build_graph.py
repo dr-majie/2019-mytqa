@@ -184,7 +184,7 @@ def build_diagram_graph(que_path, diagram_type, scp):
                     yi_axis = diagram_info[i]['Coordinate']['Center'][1]
                     xj_axis = diagram_info[j]['Coordinate']['Center'][0]
                     yj_axis = diagram_info[j]['Coordinate']['Center'][1]
-                    if max(abs(xi_axis - xj_axis) / image.size[0], abs(yi_axis - yj_axis) / image.size[1]) < 0.3:
+                    if max(abs(xi_axis - xj_axis) / image.size[0], abs(yi_axis - yj_axis) / image.size[1]) < 0.1:
                         node_of_diagram_graph.add(diagram_info[i]['WordText'])
                         node_of_diagram_graph.add(diagram_info[j]['WordText'])
                         edge_of_diagram = (node_s, node_t)

@@ -18,7 +18,7 @@ import copy
 
 class generate_network_ready_files():
     def __init__(self, word2vec_path, processed_data_path, is_test_data, word_vec_size, max_q_length, max_option_length,
-                 max_opt_count, max_sent_para, max_words_sent,op_path=None):
+                 max_opt_count, max_sent_para, max_words_sent, op_path=None):
         self.processed_data_path = processed_data_path
         self.raw_text_path = os.path.join(processed_data_path, 'text_question_sep_files')
         self.is_test_data = is_test_data
@@ -97,7 +97,7 @@ class generate_network_ready_files():
             # print('word present in dictionary : ', word)
             vec = self.unknown_words_vec_dict.get(word, None)
         else:
-            #print('word is not present in dictionary : ', word)
+            # print('word is not present in dictionary : ', word)
             vec = np.random.rand(1, self.word_vec_size)
             self.unknown_words_vec_dict[word] = vec
         return vec
@@ -107,13 +107,14 @@ class generate_network_ready_files():
             vec = model[word]
             return vec
         except:
-            #print('Vector not in model for word: ', word)
+            # print('Vector not in model for word: ', word)
             vec = self.handle_unknown_words(word)
             return vec
 
     def write_vecs_to_file(self, model, raw_data_content, word2vec_file, is_correct_answer_file=False,
-                           is_closest_para_file=False):
+                           is_closest_para_file=False, is_question_file=False):
         all_vec_array = np.array([])
+        all_words_ques = []
         number_of_words = 0
         break_loop = False
 
@@ -148,6 +149,7 @@ class generate_network_ready_files():
                     word = word.strip().lower()
                     vec = self.get_vec_for_word(model, word)
                     all_vec_array = np.append(all_vec_array, vec)
+                    all_words_ques.append(word)
                     number_of_words += 1
 
                     if number_of_words > self.num_of_words_in_closest_sentence - 1:
@@ -156,9 +158,14 @@ class generate_network_ready_files():
 
                 if break_loop:
                     break
-
+            if is_question_file:
+                pickle.dump(all_vec_array, word2vec_file)
+                return all_words_ques
         pickle.dump(all_vec_array, word2vec_file)
         word2vec_file.close()
+        # if is_question_file:
+        #     return all_words_ques
+
 
     def build_textual_graph(self, que_path, graph_que_ins_path, model, scp):
         anchor_nodes_of_que = get_anchor_nodes_of_que(que_path)
@@ -228,7 +235,7 @@ class generate_network_ready_files():
             option = chr(ord(option) + 1)
         print(node_count)
 
-    def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path):
+    def write_diagram_vecs_to_file(self, model, node_dict, adjacency_matrix, graph_que_ins_path, question_dir):
 
         if node_dict:
             # if len(node_dict) > self.num_of_nodes_in_diagram:
@@ -250,15 +257,27 @@ class generate_network_ready_files():
                     weighted_vec = torch.mm(att_vec, vec_arr)
                     node_dict[node] = weighted_vec
         else:
-            node_dict = {"no_node": np.zeros((1, 300))}
-            adjacency_matrix = np.array([[0]])
+            if question_dir.startswith("DQ"):
+                with open(os.path.join(graph_que_ins_path, 'Question.pkl'), 'rb') as f_emb:
+                    emb_ques = pickle.load(f_emb)
+                emb_ques_o = emb_ques.reshape(-1, 300)
+                with open(os.path.join(graph_que_ins_path, 'Question_content.pkl'), 'rb') as f_content:
+                    words_ques = pickle.load(f_content)
+                for word, emb in zip(words_ques, emb_ques_o):
+                    node_dict[word] = emb
+
+                size = len(node_dict)
+                adjacency_matrix = np.ones((size, size))
+            else:
+                node_dict = {"no_node": np.zeros((1, 300))}
+                adjacency_matrix = np.array([[0]])
 
         with open(os.path.join(graph_que_ins_path, 'node_embedding.pkl'), 'wb') as f_node_emb:
             pickle.dump(node_dict, f_node_emb)
         with open(os.path.join(graph_que_ins_path, 'adjacency_matrix_diagram' + '.pkl'), 'wb') as f_graph:
             pickle.dump(adjacency_matrix, f_graph)
 
-    def generate_word2vec_for_all(self,scp):
+    def generate_word2vec_for_all(self, scp):
 
         print(20 * '*')
         print('GENERATING NETWORK READY FILES.')
@@ -321,30 +340,41 @@ class generate_network_ready_files():
                                         raw_data_content = f.readlines()
                                 else:
                                     is_closest_para_file = False
+                                    if fname == 'Question.txt':
+                                        is_question_file = True
+                                    else:
+                                        is_question_file = False
                                     raw_data_content = f.readlines()
-                        # if fname == 'coordinate.txt':
-                        #     pass
-                        # elif fname == 'question_type.pkl':
-                        #     old_path = os.path.join(self.raw_text_path, lesson, question_dir, fname)
-                        #     new_path = os.path.join(op_l_dir, question_dir)
-                        #     shutil.copy2(old_path, new_path)
+                            # if fname == 'coordinate.txt':
+                            #     pass
+                            # elif fname == 'question_type.pkl':
+                            #     old_path = os.path.join(self.raw_text_path, lesson, question_dir, fname)
+                            #     new_path = os.path.join(op_l_dir, question_dir)
+                            #     shutil.copy2(old_path, new_path)
 
-                        # else:
+                            # else:
                             f = open(os.path.join(op_l_dir, question_dir, fname[:-4] + '.pkl'), 'wb')
-                            self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
-                                                    is_closest_para_file)
+
+                            all_words_ques = self.write_vecs_to_file(model, raw_data_content, f, is_correct_answer_file,
+                                                                     is_closest_para_file, is_question_file)
                             f.close()
+                            if is_question_file:
+                                 with open(os.path.join(op_l_dir, question_dir, "Question_content.pkl"), 'wb') as f_content:
+                                    pickle.dump(all_words_ques, f_content)
 
                 que_ins_path = os.path.join(l_dir, question_dir)
                 graph_que_ins_path = os.path.join(op_l_dir, question_dir)
                 if question_dir.startswith('DQ'):
                     node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DQ', scp)
-                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
+                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path,
+                                                    question_dir)
                     self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
                     node_count_dq.append(len(node_dict))
                 elif question_dir.startswith('DD'):
+
                     node_dict, adjacency_matrix = build_diagram_graph(que_ins_path, 'DD', scp)
-                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path)
+                    self.write_diagram_vecs_to_file(model, node_dict, adjacency_matrix, graph_que_ins_path,
+                                                    question_dir)
                     node_count_dd.append(len(node_dict))
                 else:
                     self.build_textual_graph(que_ins_path, graph_que_ins_path, model, scp)
