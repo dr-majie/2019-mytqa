@@ -28,6 +28,6 @@ if __name__ == '__main__':
     # fix random seed
     random.seed(cfg.seed)
     # scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
-    train_data = prepare_data(cfg=cfg, processed_data_path=cfg.train_data_path, is_test_data=False, scp=StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/'))
-    val_data = prepare_data(cfg=cfg, processed_data_path=cfg.val_data_path, is_test_data=False, scp=StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/'))
+    # train_data = prepare_data(cfg=cfg, processed_data_path=cfg.train_data_path, is_test_data=False, scp=StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/'))
+    # val_data = prepare_data(cfg=cfg, processed_data_path=cfg.val_data_path, is_test_data=False, scp=StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/'))
     test_data = prepare_data(cfg=cfg, processed_data_path=cfg.test_data_path, is_test_data=True, scp=StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/'))

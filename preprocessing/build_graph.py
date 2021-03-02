@@ -21,6 +21,7 @@ import torch.nn.functional as F
 import string
 import copy
 
+
 def get_list_of_dirs(dir_path):
     dirlist = [name for name in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, name))]
     dirlist.sort()
@@ -94,7 +95,7 @@ def get_anchor_nodes_of_all(que_path, anchor_nodes_of_que):
     return anchor_nodes_all
 
 
-def build_diagram_graph(que_path, diagram_type,scp):
+def build_diagram_graph(que_path, diagram_type, scp):
     # scp = StanfordCoreNLP(r'/data/kf/majie/stanford-corenlp-full-2018-10-05/')
     if diagram_type == 'DQ':
         diagram_info, nodes_of_diagram = get_info_of_diagram_DQ(que_path)
@@ -119,11 +120,13 @@ def build_diagram_graph(que_path, diagram_type,scp):
     img_url = os.path.join(que_path, img_name[0])
     image = Image.open(img_url)
     size = len(diagram_info)
-    adjacency_matrix = np.zeros((size, size))
+    # if size == 0:
+    #     adjacency_matrix = [0]
+    # else:
+    # adjacency_matrix = np.zeros((size, size))
+    node_dict = collections.OrderedDict()
     node_of_diagram_graph = set()
     # relation = set()
-    node_dict = collections.OrderedDict()
-
     all_dependency_relations = set()
     for tree in dependency_trees:
         dependency_relations = set()
@@ -142,33 +145,39 @@ def build_diagram_graph(que_path, diagram_type,scp):
             all_dependency_relations.add(relation)
 
     relation = set()
+    relation_final = set()
     count_of_relations_in_dependency = 0
     count_of_relations_in_location = 0
-    flag = 0
+    max_diagram_nodes = 20
+    max_relations_of_node = 5
+    # flag = 0
     for i in range(size):
         for j in range(size):
-            if i != j:
-                node_s = diagram_info[i]['WordText']
-                node_t = diagram_info[j]['WordText']
-                # for tree in dependency_trees:
-                #     for edge in tree:
+            flag = 0
+            node_s = diagram_info[i]['WordText']
+            node_t = diagram_info[j]['WordText']
+            # for tree in dependency_trees:
+            #     for edge in tree:
+            if node_s is None:
+                pass
+            else:
                 for edge in all_dependency_relations:
                     if node_s in edge and node_t in edge:
                         flag = 1
                         node_of_diagram_graph.add(node_s)
                         node_of_diagram_graph.add(node_t)
-                        edge_of_diagram = (i, j)
+                        edge_of_diagram = (node_s, node_t)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_dependency += 1
                     elif (edge[0] in node_s and edge[1] in node_t) or (edge[1] in node_s and edge[0] in node_t):
                         flag = 1
                         node_of_diagram_graph.add(node_s)
                         node_of_diagram_graph.add(node_t)
-                        edge_of_diagram = (i, j)
+                        edge_of_diagram = (node_s, node_t)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_dependency += 1
                     else:
-                        pass
+                        flag = 0
 
                 if flag == 0:
                     xi_axis = diagram_info[i]['Coordinate']['Center'][0]
@@ -178,7 +187,7 @@ def build_diagram_graph(que_path, diagram_type,scp):
                     if max(abs(xi_axis - xj_axis) / image.size[0], abs(yi_axis - yj_axis) / image.size[1]) < 0.3:
                         node_of_diagram_graph.add(diagram_info[i]['WordText'])
                         node_of_diagram_graph.add(diagram_info[j]['WordText'])
-                        edge_of_diagram = (i, j)
+                        edge_of_diagram = (node_s, node_t)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_location += 1
 
@@ -186,12 +195,29 @@ def build_diagram_graph(que_path, diagram_type,scp):
     print("count find by location relations", count_of_relations_in_location)
     print("count of all relations in diagram", len(relation))
     # scp.close()
-    for edge in relation:
-        adjacency_matrix[edge[0]][edge[1]] = 1
-        adjacency_matrix[edge[1]][edge[0]] = 1
-
     for i, node in enumerate(node_of_diagram_graph):
         node_dict[node] = i
+    # 法一
+    size = len(node_dict)
+    adjacency_matrix = np.zeros((size, size))
+    for edge in relation:
+        adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
+        adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
+
+    # if len(node_dict) > max_diagram_nodes:
+    #     node_dict = {k: node_dict[k] for k in list(node_dict.keys())[:max_diagram_nodes]}
+    # for edge in relation:
+    #     if edge[0] in node_dict and edge[1] in node_dict:
+    #         relation_final.add(edge)
+    # size = len(node_dict)
+    # adjacency_matrix = np.zeros((size, size))
+    # degree_matrix = np.zeros(size)
+    # for edge in relation_final:
+    #     if degree_matrix[node_dict[edge[0]]] < max_relations_of_node and degree_matrix[node_dict[edge[1]]] < max_relations_of_node:
+    #         adjacency_matrix[node_dict[edge[0]]][node_dict[edge[1]]] = 1
+    #         adjacency_matrix[node_dict[edge[1]]][node_dict[edge[0]]] = 1
+    #         degree_matrix[node_dict[edge[0]]] += 1
+    #         degree_matrix[node_dict[edge[1]]] += 1
     return node_dict, adjacency_matrix
 
 
