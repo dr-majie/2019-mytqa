@@ -9,7 +9,7 @@ import torch
 import numpy as np
 import torch.utils.data as Data
 from torch.nn import CrossEntropyLoss
-from model.net import TextualNetBeta, DiagramNet
+from model.rafr_tqa.net import TextualNetBeta, DiagramNet
 from utils.util import count_accurate_prediction_text
 
 

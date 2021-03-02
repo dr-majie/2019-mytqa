@@ -11,14 +11,13 @@ import torch
 import random
 import numpy as np
 import torch.utils.data as Data
-from model.config import ConfigBeta
+from model.rafr_tqa.config import ConfigBeta
 from data.textual_data_loader import TextualDataset
 from data.diagram_data_loader import DiagramDataset
-from model.net import TextualNetBeta, DiagramNet
+from model.rafr_tqa.net import TextualNetBeta, DiagramNet
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils import clip_grad_norm_
-from torch.optim import Adam, lr_scheduler, SGD, Adagrad, Adadelta, RMSprop
-from model.test import test_engine
+from torch.optim import Adam, lr_scheduler
 from utils.util import print_obj, count_accurate_prediction_text
 
 

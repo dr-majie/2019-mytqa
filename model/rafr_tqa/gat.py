@@ -9,7 +9,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model.layer import GraphAttentionLayer
+from model.rafr_tqa.layer import GraphAttentionLayer
 
 class GAT(nn.Module):
     def __init__(self, nfeat, nhid, dropout, alpha, nheads):

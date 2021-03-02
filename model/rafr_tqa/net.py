@@ -7,12 +7,10 @@
 # -----------------------------------------------
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from model.gat import GAT
+from model.rafr_tqa.gat import GAT
 from utils.util import make_mask, make_mask_num
-from model.layer import AttFlatText, LayerNorm, MultiSA, INTRA_2_INTER, AttFlatDiagram
+from model.rafr_tqa.layer import AttFlatText, LayerNorm, MultiSA, INTRA_2_INTER, AttFlatDiagram
 import numpy as np
-import math
 
 np.set_printoptions(threshold=1e6)
 

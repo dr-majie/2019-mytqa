@@ -6,7 +6,7 @@
 # @FileName: test.py
 # -----------------------------------------------
 import pickle
-from model.gat import GAT
+from model.rafr_tqa.gat import GAT
 import torch
 import numpy as np
 
