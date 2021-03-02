@@ -7,8 +7,8 @@
 # -----------------------------------------------
 import torch
 import torch.nn as nn
-from model.gat import GAT
-from model.layer import MultiHeadAttentionLayer, AttFlat
+from models.rafr_tqa.gat import GAT
+from models.rafr_tqa.layer import MultiHeadAttentionLayer, AttFlat
 from utils.util import make_mask, make_mask_opt_num
 import numpy as np
 

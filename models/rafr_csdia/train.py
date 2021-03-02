@@ -11,12 +11,12 @@ import torch
 import random
 import numpy as np
 import torch.utils.data as Data
-from model.config import Config
+from models.rafr_tqa.config import Config
 from data.textual_data_loader import TextualDataset
-from model.net import TextualNet
+from models.rafr_tqa.net import TextualNet
 from torch.nn import CrossEntropyLoss
 from torch.optim import Adam
-from model.test import test_engine
+from models.rafr_tqa.test import test_engine
 from utils.util import print_obj
 
 
@@ -72,6 +72,7 @@ def run_textual_net(cfg):
             optimizer.step()
         print('epoch:', epoch, 'training loss {}'.format(loss_sum))
         test_engine(net, cfg)
+
 
 def run_diagram_net(cfg):
     pass
