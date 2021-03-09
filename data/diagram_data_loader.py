@@ -7,13 +7,16 @@
 # -----------------------------------------------
 
 import torch.utils.data as Data
-from utils.util import load_diagram_data
+from utils.util import load_diagram_data, load_csdia_data
 
 
 class DiagramDataset(Data.Dataset):
     def __init__(self, cfg):
-        self.que, self.opt, self.dq_matrix, self.dq_node_emb, self.dd_matrix, self.dd_node_emb, \
-        self.ans, self.closest_sent = load_diagram_data(cfg)
+        if cfg.dataset == 'tqa':
+            self.que, self.opt, self.dq_matrix, self.dq_node_emb, self.dd_matrix, self.dd_node_emb, \
+            self.ans, self.closest_sent = load_diagram_data(cfg)
+        else:
+            self.que, self.opt, self.dq_matrix, self.dq_node_emb, self.ans = load_csdia_data(cfg)
 
         self.data_size = self.que.__len__()
         print('data_size: {}'.format(self.data_size))
