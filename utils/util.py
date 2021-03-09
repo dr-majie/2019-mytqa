@@ -12,6 +12,7 @@ from sentence_transformers import SentenceTransformer
 from PIL import Image
 from shutil import copyfile
 
+
 def get_list_of_dirs(dir_path):
     dirlist = [name for name in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, name))]
     dirlist.sort()
@@ -59,8 +60,43 @@ def load_csdia_data(cfg):
     dia_mat_list = []
     dia_nod_list = []
 
-    if cfg.csdia_type == 'mc':
-        pass
+    csdia_path = os.path.join(cfg.pre_path, cfg.splits, cfg.csdia_t)
+    t_list = get_list_of_dirs(csdia_path)  # list of specific topics
+
+    for t in t_list:
+        f_t_path = os.path.join(csdia_path, t)
+        f_t_list = get_list_of_dirs(f_t_path)  # file list of a specific topic
+        for file in f_t_list:
+            que_emb_path = os.path.join(f_t_path, file, 'question.pkl')
+            adj_mat_path = os.path.join(f_t_path, file, 'adjacent_matrx.pkl')
+            node_emb_path = os.path.join(f_t_path, file, 'node_emb.pkl')
+            ans_path = os.path.join(f_t_path, file, 'answer.pkl')
+            opt_name = 'a'
+            opt_q_list = []
+
+            with open(que_emb_path, 'rb') as f:
+                que_list.append(pickle.load(f))
+            with open(adj_mat_path, 'rb') as f:
+                dia_mat_list.append(pickle.load(f))
+            with open(node_emb_path, 'rb') as f:
+                dia_nod_list.append(pickle.load(f))
+            with open(ans_path, 'rb') as f:
+                ans_list.append(pickle.load(f))
+            while os.path.exists(os.path.join(os.path.join(f_t_path, file, opt_name + '.pkl'))):
+                with open(os.path.join(f_t_path, file, opt_name + '.pkl'), 'rb') as f:
+                    opt_q_list.append(pickle.load(f))
+                opt_name = chr(ord(opt_name) + 1)
+            opt_list.append(opt_q_list)
+            if len(opt_q_list) != 4:
+                print("---")
+    assert len(que_list) == len(opt_list) == len(ans_list) == len(dia_nod_list) == len(
+        dia_mat_list), 'the number of these list is not equal.'
+
+    return torch.from_numpy(np.array(que_list, dtype='float32')), \
+           torch.from_numpy(np.array(opt_list, dtype='float32')), \
+           torch.from_numpy(np.array(dia_mat_list, dtype='float32')), \
+           torch.from_numpy(np.array(dia_nod_list, dtype='float32')), \
+           torch.from_numpy(np.array(ans_list, dtype='float32'))
 
 def load_texutal_data_beta(cfg):
     que_list = []
@@ -315,6 +351,7 @@ def load_diagram_data(cfg):
            torch.from_numpy(np.array(dd_node_emb_list, dtype='float32')), \
            torch.from_numpy(np.array(ans_list, dtype='float32')), \
            torch.from_numpy(np.array(closest_sent_list, dtype='float32'))
+
 
 def count_accurate_prediction_text(label_ix, pred_ix, qt_iter):
     result = label_ix.eq(pred_ix).cpu()
