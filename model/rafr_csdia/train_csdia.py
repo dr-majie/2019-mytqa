@@ -6,9 +6,7 @@
 # @FileName: train.py
 # -----------------------------------------------
 
-import argparse
-import torch
-import random
+import argparse, torch, random
 import numpy as np
 import torch.utils.data as Data
 from model.rafr_csdia.config import ConfigBeta
@@ -36,7 +34,7 @@ def run_diagram_net(cfg):
         pin_memory=True,
         drop_last=True
     )
-    cfg.mode = 'test'
+    cfg.splits = 'val'
     val_dataset = DiagramDataset(cfg)
 
     for epoch in range(cfg.max_epochs):
