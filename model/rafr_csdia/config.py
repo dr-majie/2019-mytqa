@@ -8,64 +8,6 @@
 from types import MethodType
 
 
-class Config(object):
-    def __init__(self):
-        self.gat_hid = 300
-        self.gat_node_emb = 300
-        self.gat_dropout = 0.0
-        self.gat_alpha = 0.2
-        self.gat_heads = 1
-        self.gat_max_nodes = 80
-
-        self.multi_hid = 300
-        self.multi_heads = 1
-        self.multi_dropout = 0.5
-
-        self.word_emb = 300
-        self.lstm_hid = 300
-        self.lstm_layer = 1
-
-        self.max_que_len = 65
-        self.max_opt_len = 25
-        self.max_opt_count = 7
-
-        self.lr = 0.001
-        self.weight_decay = 5e-4
-        self.batch_size = 32
-        self.num_workers = 8
-        self.max_epochs = 300
-
-        self.mlp_hid = 300
-        self.glimpse = 1
-        self.mlp_dropout = 0.5
-        self.mlp_out = 600
-
-        self.pre_path = '/data/majie/majie/codehub/tqa/data/'
-        self.suf_path = '/processed_data/one_hot_files/'
-
-    def parse_to_dict(self, args):
-        args_dict = {}
-        for arg in dir(args):
-            if not arg.startswith('_') and not isinstance(getattr(args, arg), MethodType):
-                if getattr(args, arg) is not None:
-                    args_dict[arg] = getattr(args, arg)
-        return args_dict
-
-    def add_attr(self, args_dict):
-        for arg in args_dict:
-            setattr(self, arg, args_dict[arg])
-
-
-# -----------------------------------------------
-# !/usr/bin/env python
-# _*_coding:utf-8 _*_
-# @Time:2020/3/26 8:21
-# @Author:Ma Jie
-# @FileName: config.py
-# -----------------------------------------------
-from types import MethodType
-
-
 class ConfigBeta(object):
     def __init__(self, flag):
         self.gat_dropout = 0.0
@@ -73,41 +15,12 @@ class ConfigBeta(object):
         self.gat_alpha = 0.2
         self.gat_heads = 8
 
-        self.init_word_emb = 300
-        self.bi_dir = False
-        self.lstm_hid = 512
-        self.lstm_layer = 1
-
-        if self.bi_dir:
-            self.word_emb = 1024
-        else:
-            self.word_emb = 512
-
-        self.multi_heads = 8
-        self.multi_drop_out = 0.2
-        self.multi_hidden = 512
-        self.sa_layer = 1
-
-        if flag == 'tn':
-            self.max_opt_count = 7
-            self.mlp_in = 512
-            self.mlp_hid = 256
-            self.glimpse = 1
-            self.mlp_dropout = 0.2
-            self.mlp_out = 128
-        else:
-            self.max_opt_count = 4
-            self.intra2inter_layer = 1
-            self.mlp_in = 512
-            self.mlp_hid = 256
-            self.glimpse = 1
-            self.mlp_dropout = 0.2
-            self.mlp_out = 128
-
-        self.max_que_len = 65  # 65
-        self.max_opt_len = 25  # 25
-        self.max_sent_para = 10
-        self.max_words_sent = 20
+        self.intra2inter_layer = 1
+        self.mlp_in = 512
+        self.mlp_hid = 256
+        self.glimpse = 1
+        self.mlp_dropout = 0.2
+        self.mlp_out = 128
 
         self.lr = 0.0005
         self.weight_decay = 0.01  # 5e-4
@@ -115,16 +28,13 @@ class ConfigBeta(object):
         self.num_workers = 8
         self.max_epochs = 60
 
-        # diagram model parameters
-        self.max_diagram_node = 60
-        self.max_dd_num = 5
-
-        self.pre_path = '/data/kf/majie/wangyaxian/all_processed_data/data-0.25/'
-        self.suf_path = '/processed_data/one_hot_files/'
+        if flag in 'mc':
+            self.opt_num = 4
+        else:
+            self.opt_num = 2
+        self.pre_path = '/data/majie/majie/codehub/2019-mytqa/processed_csdia_data/'
         self.save_path = '/data/kf/majie/codehub/2019-mytqa/saved'
         self.load_model = False
-        # self.pre_path = '/data/kf/majie/wangyaxian/2019-tqa-v2/data/'
-        # self.suf_path = '/processed_data/one_hot_files/'
 
     def parse_to_dict(self, args):
         args_dict = {}
