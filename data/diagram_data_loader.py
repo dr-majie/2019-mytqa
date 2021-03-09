@@ -16,7 +16,7 @@ class DiagramDataset(Data.Dataset):
             self.que, self.opt, self.dq_matrix, self.dq_node_emb, self.dd_matrix, self.dd_node_emb, \
             self.ans, self.closest_sent = load_diagram_data(cfg)
         else:
-            self.que, self.opt, self.dq_matrix, self.dq_node_emb, self.ans = load_csdia_data(cfg)
+            self.que, self.opt, self.dia_matrix, self.dia_node_emb, self.ans = load_csdia_data(cfg)
 
         self.data_size = self.que.__len__()
         print('data_size: {}'.format(self.data_size))
