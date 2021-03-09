@@ -40,7 +40,7 @@ class Config(object):
         self.mlp_dropout = 0.5
         self.mlp_out = 600
 
-        self.pre_path = '/data/kf/majie/wangyaxian/tqa/data/'
+        self.pre_path = '/data/majie/majie/codehub/tqa/data/'
         self.suf_path = '/processed_data/one_hot_files/'
 
     def parse_to_dict(self, args):
