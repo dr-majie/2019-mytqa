@@ -178,7 +178,6 @@ def build_diagram_graph(que_path, diagram_type, scp):
                         count_of_relations_in_dependency += 1
                     else:
                         flag = 0
-
                 if flag == 0:
                     xi_axis = diagram_info[i]['Coordinate']['Center'][0]
                     yi_axis = diagram_info[i]['Coordinate']['Center'][1]
@@ -190,7 +189,6 @@ def build_diagram_graph(que_path, diagram_type, scp):
                         edge_of_diagram = (node_s, node_t)
                         relation.add(edge_of_diagram)
                         count_of_relations_in_location += 1
-
     print("count find by dependency relations", count_of_relations_in_dependency)
     print("count find by location relations", count_of_relations_in_location)
     print("count of all relations in diagram", len(relation))
