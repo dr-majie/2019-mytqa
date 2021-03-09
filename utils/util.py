@@ -5,12 +5,12 @@
 # @Author:Ma Jie
 # @FileName: util.py
 # -----------------------------------------------
-import os
+import os, pickle, json, collections, string
 import numpy as np
-import pickle
 import torch
-import collections
-import matplotlib.pyplot as plt
+from sentence_transformers import SentenceTransformer
+from PIL import Image
+from shutil import copyfile
 
 def get_list_of_dirs(dir_path):
     dirlist = [name for name in os.listdir(dir_path) if os.path.isdir(os.path.join(dir_path, name))]
@@ -51,6 +51,13 @@ def print_obj(obj):
     for item in obj.__dict__.items():
         print(item)
 
+
+def load_csdia_data(cfg):
+    que_list = []
+    opt_list = []
+    ans_list = []
+    dia_mat_list = []
+    dia_nod_list = []
 
 def load_texutal_data_beta(cfg):
     que_list = []
@@ -306,7 +313,6 @@ def load_diagram_data(cfg):
            torch.from_numpy(np.array(ans_list, dtype='float32')), \
            torch.from_numpy(np.array(closest_sent_list, dtype='float32'))
 
-
 def count_accurate_prediction_text(label_ix, pred_ix, qt_iter):
     result = label_ix.eq(pred_ix).cpu()
     qt_tf = 0
@@ -329,3 +335,138 @@ def count_accurate_prediction_text(label_ix, pred_ix, qt_iter):
             else:
                 mc_sum += 1
     return qt_tf, qt_mc, tf_sum, mc_sum
+
+
+def process_csdia_data():
+    root_path = '/data/majie/majie/codehub/2019-mytqa/processed_csdia_data'
+    csdia_diagram = '/data/majie/majie/codehub/2019-mytqa/csdia data/diagram/Queue/'
+    csdia_diagram_anno = '/data/majie/majie/codehub/2019-mytqa/csdia data/annotation/Queue/Queue.json'
+    qas = '/data/majie/majie/codehub/2019-mytqa/csdia data/QA/Queue/'
+    mc_path = os.path.join(root_path, 'mc')
+    tf_path = os.path.join(root_path, 'tf')
+    max_nodes = 10
+    threshold = 0.2
+
+    if not os.path.exists(root_path):
+        os.mkdir(root_path)
+        os.mkdir(mc_path)
+        os.mkdir(tf_path)
+
+    # load the diagram information.
+    with open(csdia_diagram_anno, 'r') as f:
+        dias_info = json.load(f)
+
+    # load sentence transformer
+    model = SentenceTransformer('paraphrase-distilroberta-base-v1')
+
+    for dia in dias_info['Queue.json']:
+        dia_name = dia['filename'].replace('.png', '')
+        img = Image.open(os.path.join(csdia_diagram, dia_name + '.png'))
+        width, height = img.size
+        regions = dia['regions']
+        coos = []  # the list of coordinates
+        reg_embs = np.zeros((max_nodes, 768))
+        adj_mat = np.zeros((max_nodes, max_nodes))  # adjacent matrix
+        dia_mc_path = os.path.join(mc_path, dia_name)
+        dia_tf_path = os.path.join(tf_path, dia_name)
+
+        # make dia_name file
+        if not os.path.exists(dia_mc_path):
+            os.mkdir(dia_mc_path)
+        if not os.path.exists(dia_tf_path):
+            os.mkdir(dia_tf_path)
+
+        for i, reg in enumerate(regions):
+            cent_coo_x = reg['shape_attributes']['x'] + reg['shape_attributes']['width'] / 2.0  # the center coordinate
+            cent_coo_y = reg['shape_attributes']['y'] + reg['shape_attributes']['height'] / 2.0
+            coos.append((cent_coo_x, cent_coo_y))
+            reg_des = reg['region_attributes']['Description']  # the description of regions
+            reg_emb = model.encode(reg_des).reshape(1, 768)
+            reg_embs[i] = reg_emb
+            if i + 1 >= max_nodes:
+                break
+
+        # build relation graph
+        coos_len = len(coos)
+        for i in range(coos_len):
+            for j in range(i, coos_len):
+                x_diff = abs(coos[i][0] - coos[j][0]) / width
+                y_diff = abs(coos[i][1] - coos[j][1]) / width
+                if max(x_diff, y_diff) < threshold:
+                    adj_mat[i][j] = adj_mat[j][i] = 1
+
+        # read questions corresponding to queue_x.png
+        ques = []
+        opts = []
+        correct_ans = []
+        if not os.path.exists(os.path.join(qas, dia_name + '.txt')):
+            print(dia_name)
+            os.removedirs(os.path.join(root_path, 'mc', dia_name))
+            os.removedirs(os.path.join(root_path, 'tf', dia_name))
+            continue
+        with open(os.path.join(qas, dia_name + '.txt')) as f:
+            lines = f.readlines()
+            for i, line in enumerate(lines):
+                if i % 2 == 0:
+                    que = line[2:].strip().strip(string.punctuation)
+                    ques.append(que)
+                else:
+                    opt = line.strip().split()
+                    opts.append(opt)
+                if i + 1 == len(lines):
+                    correct_ans.append(line.replace(',', ' ').split(' '))
+        for i, opt in enumerate(opts):
+            if len(opt) != 2:
+                que_emb = model.encode(ques[i]).reshape(1, 768)
+                que_path = os.path.join(dia_mc_path, str(i))
+                if not os.path.exists(que_path):
+                    os.mkdir(que_path)
+                answer = np.zeros((1, 4))
+                answer[0][ord(correct_ans[0][i]) - 65] = 1
+                copyfile(os.path.join(csdia_diagram, dia_name + '.png'), os.path.join(que_path, dia_name + '.png'))
+                with open(os.path.join(que_path, 'question.pkl'), 'wb+') as f:
+                    pickle.dump(que_emb, f)
+                with open(os.path.join(que_path, 'adjacent_matrx.pkl'), 'wb+') as f:
+                    pickle.dump(adj_mat, f)
+                with open(os.path.join(que_path, 'node_emb.pkl'), 'wb+') as f:
+                    pickle.dump(reg_embs, f)
+                with open(os.path.join(que_path, 'answer.pkl'), 'wb+') as f:
+                    pickle.dump(answer, f)
+
+                o_name = 'a'
+                for j, o in enumerate(opt):
+                    o = o[2:]
+                    o_emb = model.encode(o).reshape(1, 768)
+                    with open(os.path.join(dia_mc_path, str(i), o_name + '.pkl'), 'wb+') as f:
+                        pickle.dump(o_emb, f)
+                    o_name = chr(ord(o_name) + 1)
+            else:
+                que_emb = model.encode(ques[i]).reshape(1, 768)
+                que_path = os.path.join(dia_tf_path, str(i))
+                if not os.path.exists(que_path):
+                    os.mkdir(que_path)
+                answer = np.zeros((1, 2))
+                if correct_ans[0][i].lower() in 'true':
+                    answer[0][0] = 1
+                else:
+                    answer[0][1] = 1
+                copyfile(os.path.join(csdia_diagram, dia_name + '.png'), os.path.join(que_path, dia_name + '.png'))
+                with open(os.path.join(que_path, 'question.pkl'), 'wb+') as f:
+                    pickle.dump(que_emb, f)
+                with open(os.path.join(que_path, 'adjacent_matrx.pkl'), 'wb+') as f:
+                    pickle.dump(adj_mat, f)
+                with open(os.path.join(que_path, 'node_emb.pkl'), 'wb+') as f:
+                    pickle.dump(reg_embs, f)
+                with open(os.path.join(que_path, 'answer.pkl'), 'wb+') as f:
+                    pickle.dump(answer, f)
+
+                o_name = 'a'
+                for j, o in enumerate(opt):
+                    o_emb = model.encode(o).reshape(1, 768)
+                    with open(os.path.join(dia_tf_path, str(i), o_name + '.pkl'), 'wb+') as f:
+                        pickle.dump(o_emb, f)
+                    o_name = chr(ord(o_name) + 1)
+
+
+if __name__ == '__main__':
+    process_csdia_data()
