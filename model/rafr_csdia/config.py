@@ -14,8 +14,8 @@ class ConfigBeta(object):
         self.gat_hidden = 64
         self.gat_alpha = 0.2
         self.gat_heads = 8
+        self.init_word_emb = 768
 
-        self.intra2inter_layer = 1
         self.mlp_in = 512
         self.mlp_hid = 256
         self.glimpse = 1
