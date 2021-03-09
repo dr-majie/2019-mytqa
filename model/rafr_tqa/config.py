@@ -119,9 +119,9 @@ class ConfigBeta(object):
         self.max_diagram_node = 60
         self.max_dd_num = 5
 
-        self.pre_path = '/data/kf/majie/wangyaxian/all_processed_data/data-0.25/'
+        self.pre_path = '/data/majie/majie/codehub/2019-mytqa/data/'
         self.suf_path = '/processed_data/one_hot_files/'
-        self.save_path = '/data/kf/majie/codehub/2019-mytqa/saved'
+        self.save_path = '/data/majie/majie/codehub/2019-mytqa/saved'
         self.load_model = False
         # self.pre_path = '/data/kf/majie/wangyaxian/2019-tqa-v2/data/'
         # self.suf_path = '/processed_data/one_hot_files/'
