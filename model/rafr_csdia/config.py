@@ -5,8 +5,8 @@
 # @Author:Ma Jie
 # @FileName: config.py
 # -----------------------------------------------
+import random, os
 from types import MethodType
-
 
 class ConfigBeta(object):
     def __init__(self, flag):
@@ -15,16 +15,17 @@ class ConfigBeta(object):
         self.gat_alpha = 0.2
         self.gat_heads = 8
         self.init_word_emb = 768
+        self.max_diagram_node = 10
 
         self.mlp_in = 512
-        self.mlp_hid = 256
+        self.mlp_hid = 512
         self.glimpse = 1
         self.mlp_dropout = 0.2
-        self.mlp_out = 128
+        self.mlp_out = 768
 
-        self.lr = 0.0005
-        self.weight_decay = 0.01  # 5e-4
-        self.batch_size = 8
+        self.lr = 0.0001
+        self.weight_decay = 5e-4
+        self.batch_size = 1
         self.num_workers = 8
         self.max_epochs = 60
 
@@ -33,8 +34,12 @@ class ConfigBeta(object):
         else:
             self.opt_num = 2
         self.pre_path = '/data/majie/majie/codehub/2019-mytqa/processed_csdia_data/'
-        self.save_path = '/data/kf/majie/codehub/2019-mytqa/saved'
+        self.save_path = '/data/majie/majie/codehub/2019-mytqa/saved/csdia'
+
+        if not os.path.exists(self.save_path):
+            os.mkdir(self.save_path)
         self.load_model = False
+        self.version = str(random.randint(0, 999))
 
     def parse_to_dict(self, args):
         args_dict = {}
