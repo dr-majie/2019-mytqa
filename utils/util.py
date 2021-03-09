@@ -59,6 +59,9 @@ def load_csdia_data(cfg):
     dia_mat_list = []
     dia_nod_list = []
 
+    if cfg.csdia_type == 'mc':
+        pass
+
 def load_texutal_data_beta(cfg):
     que_list = []
     que_type_list = []
