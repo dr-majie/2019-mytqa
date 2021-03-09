@@ -114,6 +114,7 @@ def run_diagram_net(cfg):
 if __name__ == '__main__':
     parse = argparse.ArgumentParser()
     parse.add_argument('--mode', dest='mode', choices=['train', 'test'], type=str, required=True)
+    parse.add_argument('--dataset', dest='dataset', choices=['tqa', 'csdia'], type=str, required=True)
     parse.add_argument('--splits', dest='splits', choices=['train+val', 'train'], type=str, required=True)
     parse.add_argument('--no-cuda', action='store_true', default=False, help='Disable cuda training')
     parse.add_argument('--seed', type=int, default=72, help='Random seed.')
@@ -134,7 +135,4 @@ if __name__ == '__main__':
     cfg.add_attr(args_dict)
     print_obj(cfg)
 
-    if cfg.model == 'tn':
-        run_textual_net(cfg)
-    else:
-        run_diagram_net(cfg)
+    run_diagram_net(cfg)
