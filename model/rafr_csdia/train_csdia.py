@@ -11,10 +11,9 @@ import torch
 import random
 import numpy as np
 import torch.utils.data as Data
-from model.rafr_tqa.config import ConfigBeta
-from data.textual_data_loader import TextualDataset
+from model.rafr_csdia.config import ConfigBeta
 from data.diagram_data_loader import DiagramDataset
-from model.rafr_tqa.net import TextualNetBeta, DiagramNet
+from model.rafr_csdia.net import DiagramNet
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam, lr_scheduler
@@ -47,32 +46,23 @@ def run_diagram_net(cfg):
         for step, (
                 que_iter,
                 opt_iter,
-                dq_matrix_iter,
-                dq_node_emb_iter,
-                dd_matrix_iter,
-                dd_node_emb_iter,
-                ans_iter,
-                cs_iter
+                dia_mat_iter,
+                dia_nod_emb_iter,
+                ans_iter
         ) in enumerate(train_dataloader):
             que_iter = que_iter.cuda()
             opt_iter = opt_iter.cuda()
-            dq_matrix_iter = dq_matrix_iter.cuda()
-            dq_node_emb_iter = dq_node_emb_iter.cuda()
-            dd_matrix_iter = dd_matrix_iter.cuda()
-            dd_node_emb_iter = dd_node_emb_iter.cuda()
+            dia_mat_iter = dia_mat_iter.cuda()
+            dia_nod_emb_iter = dia_nod_emb_iter.cuda()
             ans_iter = ans_iter.cuda()
-            cs_iter = cs_iter.cuda()
 
             optimizer.zero_grad()
             # que_emb, opt_emb, adjacency_matrices, node_emb, cfg
             pred = net(
                 que_iter,
                 opt_iter,
-                dq_matrix_iter,
-                dq_node_emb_iter,
-                dd_matrix_iter,
-                dd_node_emb_iter,
-                cs_iter,
+                dia_mat_iter,
+                dia_nod_emb_iter,
                 cfg
             )
             # loss = criterion(pred, ans_iter)
@@ -113,13 +103,13 @@ def run_diagram_net(cfg):
 
 if __name__ == '__main__':
     parse = argparse.ArgumentParser()
+    parse.add_argument('--csdia_t', dest='csdia_t', choices=['mc', 'tf'], type=str, required=True)
     parse.add_argument('--mode', dest='mode', choices=['train', 'test'], type=str, required=True)
     parse.add_argument('--dataset', dest='dataset', choices=['tqa', 'csdia'], type=str, required=True)
     parse.add_argument('--splits', dest='splits', choices=['train+val', 'train'], type=str, required=True)
     parse.add_argument('--no-cuda', action='store_true', default=False, help='Disable cuda training')
     parse.add_argument('--seed', type=int, default=72, help='Random seed.')
-    parse.add_argument('--model', dest='model', choices=['tn', 'dn'],
-                       help='tn denotes textual net, and dn denotes diagram net', type=str, required=True)
+
     args = parse.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
 
@@ -130,7 +120,7 @@ if __name__ == '__main__':
     if args.cuda:
         torch.cuda.manual_seed(args.seed)
 
-    cfg = ConfigBeta(args.model)
+    cfg = ConfigBeta(args.csdia_t)
     args_dict = cfg.parse_to_dict(args)
     cfg.add_attr(args_dict)
     print_obj(cfg)
