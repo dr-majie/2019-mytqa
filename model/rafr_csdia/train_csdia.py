@@ -6,19 +6,20 @@
 # @FileName: train.py
 # -----------------------------------------------
 
-import argparse, torch, random
+import argparse, torch, random, os
 import numpy as np
 import torch.utils.data as Data
 from model.rafr_csdia.config import ConfigBeta
 from data.diagram_data_loader import DiagramDataset
-from model.rafr_csdia.net import DiagramNet
+from model.rafr_csdia.net import Net
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam, lr_scheduler
-from utils.util import print_obj, count_accurate_prediction_text
+from utils.util import print_obj
+from model.rafr_csdia.test_csdia import test_engine
 
 def run_diagram_net(cfg):
-    net = DiagramNet(cfg)
+    net = Net(cfg)
     net.cuda()
     net.train()
     criterion = CrossEntropyLoss()
@@ -89,13 +90,20 @@ def run_diagram_net(cfg):
         print(40 * '=')
         print('\n')
         state = net.state_dict()
+        if not os.path.exists(os.path.join(cfg.save_path, cfg.csdia_t)):
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t))
+
+        if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t)):
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ckpt_' + cfg.version))
+
         torch.save(state,
                    cfg.save_path +
+                   '/' + cfg.csdia_t + '/'
+                                       'ckpt_' + cfg.version +
                    '/epoch' + str(epoch) +
-                   'diagramNet' +
                    '.pkl'
                    )
-        # test_engine(state, cfg, val_dataset)
+        test_engine(state, cfg, val_dataset)
         scheduler.step()
 
 
