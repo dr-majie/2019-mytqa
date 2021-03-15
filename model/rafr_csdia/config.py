@@ -10,7 +10,7 @@ from types import MethodType
 
 class ConfigBeta(object):
     def __init__(self, flag):
-        self.gat_dropout = 0.0
+        self.gat_dropout = 0.2
         self.gat_hidden = 96
         self.gat_alpha = 0.2
         self.gat_heads = 8
@@ -27,7 +27,7 @@ class ConfigBeta(object):
         self.weight_decay = 5e-4
         self.batch_size = 1
         self.num_workers = 8
-        self.max_epochs = 10
+        self.max_epochs = 25
 
         self.intra2inter_layer = 1
         self.multi_hidden = 768
@@ -43,7 +43,6 @@ class ConfigBeta(object):
 
         if not os.path.exists(self.save_path):
             os.mkdir(self.save_path)
-        self.load_model = False
         self.version = str(random.randint(0, 999))
 
     def parse_to_dict(self, args):

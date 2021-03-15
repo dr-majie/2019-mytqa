@@ -29,9 +29,9 @@ class Net(nn.Module):
         self.intra2inter = INTRA_2_INTER(cfg)
 
         self.flat = AttFlatDiagram(cfg)
-        self.ln = LayerNorm(cfg.mlp_out * 6)
+        self.ln = LayerNorm(cfg.mlp_out * 3)
 
-        self.classify = nn.Linear(cfg.mlp_out * 6, 1)
+        self.classify = nn.Linear(cfg.mlp_out * 3, 1)
 
     def forward(self, que_emb, dia_f, opt_emb, dia_matrix, dia_node_emb, cfg):
         batch_size = que_emb.shape[0]
@@ -53,11 +53,7 @@ class Net(nn.Module):
         que_feat = que_feat.squeeze(1).repeat(1, cfg.opt_num).reshape(batch_size, cfg.opt_num, -1)
         opt_feat = opt_emb.squeeze(2)
 
-        sim_q_o = que_feat * opt_feat
-        sim_d_o = dia_feat * opt_feat
-        sim_d_o_q = que_feat * opt_feat * dia_feat
-
-        fusion_feat = torch.cat((que_feat, dia_feat, opt_feat, sim_d_o, sim_q_o, sim_d_o_q), dim=-1)
+        fusion_feat = torch.cat((dia_feat, que_feat, opt_feat), dim=-1)
         fusion_feat = self.ln(fusion_feat)
         scores = self.classify(fusion_feat).squeeze(-1)
         return scores

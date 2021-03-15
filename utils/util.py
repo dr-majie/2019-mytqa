@@ -91,8 +91,6 @@ def load_csdia_data(cfg):
                     opt_q_list.append(pickle.load(f))
                 opt_name = chr(ord(opt_name) + 1)
             opt_list.append(opt_q_list)
-            if len(opt_q_list) != 4:
-                print("---")
     assert len(que_list) == len(opt_list) == len(ans_list) == len(dia_nod_list) == len(
         dia_mat_list), 'the number of these list is not equal.'
 

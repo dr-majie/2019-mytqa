@@ -5,21 +5,26 @@
 # @Author:Ma Jie
 # @FileName: test.py
 # -----------------------------------------------
-import torch
+import torch, argparse, random
 import numpy as np
 import torch.utils.data as Data
 from torch.nn import CrossEntropyLoss
 from model.rafr_csdia.net import Net
+from data.diagram_data_loader import DiagramDataset
+from utils.util import print_obj
+from model.rafr_csdia.config import ConfigBeta
 
 
-def test_engine(state_dict, cfg, dataset):
+def test_engine(state_dict=None, cfg=None, dataset=None):
     net = Net(cfg)
     net.eval()
     net.cuda()
     flag = 'val'
-    if cfg.load_model == True:
+    if state_dict == None:
         flag = 'test'
-        net.load_state_dict(torch.load(cfg.save_path + '/epoch' + str(0) + '.pkl'))
+        dataset = DiagramDataset(cfg)
+        net.load_state_dict(torch.load(cfg.save_path + '/' + cfg.csdia_t + '/rafr/' + cfg.version +
+                                       '/epoch' + cfg.epoch + '.pkl'))
     else:
         net.load_state_dict(state_dict)
 
@@ -79,3 +84,31 @@ def test_engine(state_dict, cfg, dataset):
           'overall accuracy:', overall_acc)
     print(40 * '*')
     print('\n')
+
+
+if __name__ == '__main__':
+    parse = argparse.ArgumentParser()
+    parse.add_argument('--csdia_t', dest='csdia_t', choices=['mc', 'tf'], type=str, required=True)
+    parse.add_argument('--dataset', dest='dataset', choices=['tqa', 'csdia'], type=str, required=True)
+    parse.add_argument('--version', dest='version', type=str, required=True)
+    parse.add_argument('--epoch', dest='epoch', type=str, required=True)
+    parse.add_argument('--splits', dest='splits', default='test', type=str)
+    parse.add_argument('--no-cuda', action='store_true', default=False, help='Disable cuda training')
+    parse.add_argument('--seed', type=int, default=72, help='Random seed.')
+
+    args = parse.parse_args()
+    args.cuda = not args.no_cuda and torch.cuda.is_available()
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+    if args.cuda:
+        torch.cuda.manual_seed(args.seed)
+
+    cfg = ConfigBeta(args.csdia_t)
+    args_dict = cfg.parse_to_dict(args)
+    cfg.add_attr(args_dict)
+    print_obj(cfg)
+
+    test_engine(cfg=cfg)
