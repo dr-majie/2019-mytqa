@@ -24,7 +24,7 @@ def test_engine(state_dict, cfg, dataset):
         net.load_state_dict(state_dict)
 
     criterion = CrossEntropyLoss()
-    print('Note: begin to test the model using' + flag + ' dataset')
+    print('Note: begin to test the model using ' + flag + ' split')
     dataloader = Data.DataLoader(
         dataset=dataset,
         batch_size=cfg.batch_size,

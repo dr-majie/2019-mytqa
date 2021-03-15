@@ -96,14 +96,15 @@ def run_diagram_net(cfg):
         state = net.state_dict()
         if not os.path.exists(os.path.join(cfg.save_path, cfg.csdia_t)):
             os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t))
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr'))
 
-        if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t)):
-            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ckpt_' + cfg.version))
+        if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ban')):
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr', 'ckpt_' + cfg.version))
 
         torch.save(state,
                    cfg.save_path +
-                   '/' + cfg.csdia_t + '/'
-                                       'ckpt_' + cfg.version +
+                   '/' + cfg.csdia_t + '/rafr'
+                                       '/ckpt_' + cfg.version +
                    '/epoch' + str(epoch) +
                    '.pkl'
                    )
