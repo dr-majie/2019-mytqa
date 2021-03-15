@@ -96,8 +96,8 @@ def run_diagram_net(cfg):
         state = net.state_dict()
         if not os.path.exists(os.path.join(cfg.save_path, cfg.csdia_t)):
             os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t))
+        if not os.path.exists(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr')):
             os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr'))
-
         if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr')):
             os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'rafr', 'ckpt_' + cfg.version))
 
