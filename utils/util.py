@@ -5,9 +5,9 @@
 # @Author:Ma Jie
 # @FileName: util.py
 # -----------------------------------------------
-import os, pickle, json, collections, string
+import os, pickle, json, collections, string, torch
 import numpy as np
-import torch
+import torchvision.transforms as transforms
 from sentence_transformers import SentenceTransformer
 from PIL import Image
 from shutil import copyfile
@@ -59,6 +59,7 @@ def load_csdia_data(cfg):
     ans_list = []
     dia_mat_list = []
     dia_nod_list = []
+    dia_f_list = []
 
     csdia_path = os.path.join(cfg.pre_path, cfg.splits, cfg.csdia_t)
     t_list = get_list_of_dirs(csdia_path)  # list of specific topics
@@ -71,11 +72,14 @@ def load_csdia_data(cfg):
             adj_mat_path = os.path.join(f_t_path, file, 'adjacent_matrx.pkl')
             node_emb_path = os.path.join(f_t_path, file, 'node_emb.pkl')
             ans_path = os.path.join(f_t_path, file, 'answer.pkl')
+            dia_path = os.path.join(f_t_path, file, t + '.png')
             opt_name = 'a'
             opt_q_list = []
 
             with open(que_emb_path, 'rb') as f:
                 que_list.append(pickle.load(f))
+            with open(dia_path, 'rb') as f:
+                dia_f_list.append(proc_dia(dia_path))
             with open(adj_mat_path, 'rb') as f:
                 dia_mat_list.append(pickle.load(f))
             with open(node_emb_path, 'rb') as f:
@@ -93,6 +97,7 @@ def load_csdia_data(cfg):
         dia_mat_list), 'the number of these list is not equal.'
 
     return torch.from_numpy(np.array(que_list, dtype='float32')), \
+           torch.from_numpy(np.array(dia_f_list, dtype='float32')), \
            torch.from_numpy(np.array(opt_list, dtype='float32')), \
            torch.from_numpy(np.array(dia_mat_list, dtype='float32')), \
            torch.from_numpy(np.array(dia_nod_list, dtype='float32')), \
@@ -376,6 +381,14 @@ def count_accurate_prediction_text(label_ix, pred_ix, qt_iter):
                 mc_sum += 1
     return qt_tf, qt_mc, tf_sum, mc_sum
 
+
+# process diagram into a PIL type
+def proc_dia(dia_path):
+    dia = Image.open(dia_path).convert('RGB')  # RGBA -> RGB
+    dia = dia.resize((224, 224), Image.BILINEAR)
+    dia = transforms.ToTensor()(dia)
+    dia = np.array(dia)
+    return dia
 
 def process_csdia_data():
     root_path = '/data/majie/majie/codehub/2019-mytqa/processed_csdia_data'
