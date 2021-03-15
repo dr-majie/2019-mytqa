@@ -97,14 +97,15 @@ def run_diagram_net(cfg):
         state = net.state_dict()
         if not os.path.exists(os.path.join(cfg.save_path, cfg.csdia_t)):
             os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t))
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ban'))
 
-        if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t)):
-            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ckpt_' + cfg.version))
+        if ('ckpt_' + cfg.version) not in os.listdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ban')):
+            os.mkdir(os.path.join(cfg.save_path, cfg.csdia_t, 'ban', 'ckpt_' + cfg.version))
 
         torch.save(state,
                    cfg.save_path +
-                   '/' + cfg.csdia_t + '/'
-                                       'ckpt_' + cfg.version +
+                   '/' + cfg.csdia_t + '/ban'
+                                       '/ckpt_' + cfg.version +
                    '/epoch' + str(epoch) +
                    '.pkl'
                    )
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     parse.add_argument('--dataset', dest='dataset', choices=['tqa', 'csdia'], type=str, required=True)
     parse.add_argument('--splits', dest='splits', choices=['train+val', 'train'], type=str, required=True)
     parse.add_argument('--no-cuda', action='store_true', default=False, help='Disable cuda training')
-    parse.add_argument('--seed', type=int, default=72, help='Random seed.')
+    parse.add_argument('--seed', type=int, default=75, help='Random seed.')
 
     args = parse.parse_args()
     args.cuda = not args.no_cuda and torch.cuda.is_available()
