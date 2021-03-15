@@ -508,5 +508,14 @@ def process_csdia_data():
                     o_name = chr(ord(o_name) + 1)
 
 
+def params_count(model):
+    """
+    Compute the number of parameters.
+    Args:
+        model (model): model to count the number of parameters.
+    """
+    return np.sum([p.numel() for p in model.parameters()]).item()
+
+
 if __name__ == '__main__':
     process_csdia_data()

@@ -11,14 +11,14 @@ from types import MethodType
 class ConfigBeta(object):
     def __init__(self, flag):
         self.gat_dropout = 0.0
-        self.gat_hidden = 64
+        self.gat_hidden = 96
         self.gat_alpha = 0.2
         self.gat_heads = 8
         self.init_word_emb = 768
         self.max_diagram_node = 10
 
-        self.mlp_in = 512
-        self.mlp_hid = 512
+        self.mlp_in = 768
+        self.mlp_hid = 768
         self.glimpse = 1
         self.mlp_dropout = 0.2
         self.mlp_out = 768
@@ -27,7 +27,12 @@ class ConfigBeta(object):
         self.weight_decay = 5e-4
         self.batch_size = 1
         self.num_workers = 8
-        self.max_epochs = 60
+        self.max_epochs = 10
+
+        self.intra2inter_layer = 1
+        self.multi_hidden = 768
+        self.multi_drop_out = 0.2
+        self.multi_heads = 8
 
         if flag in 'mc':
             self.opt_num = 4

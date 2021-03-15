@@ -20,6 +20,7 @@ from model.rafr_csdia.test_csdia import test_engine
 
 def run_diagram_net(cfg):
     net = Net(cfg)
+
     net.cuda()
     net.train()
     criterion = CrossEntropyLoss()

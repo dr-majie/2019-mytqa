@@ -18,7 +18,7 @@ from model.rafr_tqa.net import TextualNetBeta, DiagramNet
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import Adam, lr_scheduler
-from utils.util import print_obj, count_accurate_prediction_text
+from utils.util import print_obj, count_accurate_prediction_text, params_count
 
 
 def run_textual_net(cfg):
@@ -116,6 +116,7 @@ def run_textual_net(cfg):
 
 def run_diagram_net(cfg):
     net = DiagramNet(cfg)
+    print('Total Parameters:' + str(params_count(net)))
     net.cuda()
     net.train()
     criterion = CrossEntropyLoss()
