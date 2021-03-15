@@ -36,12 +36,14 @@ def test_engine(state_dict, cfg, dataset):
     que_sum = 0
     for step, (
             que_iter,
+            dia_f_iter,
             opt_iter,
             dia_mat_iter,
             dia_nod_emb_iter,
             ans_iter
     ) in enumerate(dataloader):
         que_iter = que_iter.cuda()
+        dia_f_iter = dia_f_iter.cuda()
         opt_iter = opt_iter.cuda()
         dia_mat_iter = dia_mat_iter.cuda()
         dia_nod_emb_iter = dia_nod_emb_iter.cuda()
@@ -50,6 +52,7 @@ def test_engine(state_dict, cfg, dataset):
         with torch.no_grad():
             pred = net(
                 que_iter,
+                dia_f_iter,
                 opt_iter,
                 dia_mat_iter,
                 dia_nod_emb_iter,

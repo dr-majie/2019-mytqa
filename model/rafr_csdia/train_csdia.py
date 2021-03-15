@@ -45,12 +45,14 @@ def run_diagram_net(cfg):
         que_sum = 0
         for step, (
                 que_iter,
+                dia_f_iter,
                 opt_iter,
                 dia_mat_iter,
                 dia_nod_emb_iter,
                 ans_iter
         ) in enumerate(train_dataloader):
             que_iter = que_iter.cuda()
+            dia_f_iter = dia_f_iter.cuda()
             opt_iter = opt_iter.cuda()
             dia_mat_iter = dia_mat_iter.cuda()
             dia_nod_emb_iter = dia_nod_emb_iter.cuda()
@@ -60,6 +62,7 @@ def run_diagram_net(cfg):
             # que_emb, opt_emb, adjacency_matrices, node_emb, cfg
             pred = net(
                 que_iter,
+                dia_f_iter,
                 opt_iter,
                 dia_mat_iter,
                 dia_nod_emb_iter,

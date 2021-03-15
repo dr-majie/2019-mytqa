@@ -33,7 +33,7 @@ class Net(nn.Module):
 
         self.classify = nn.Linear(cfg.mlp_out * 6, 1)
 
-    def forward(self, que_emb, opt_emb, dia_matrix, dia_node_emb, cfg):
+    def forward(self, que_emb, dia_f, opt_emb, dia_matrix, dia_node_emb, cfg):
         batch_size = que_emb.shape[0]
 
         que_mask = make_mask(que_emb)
